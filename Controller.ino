@@ -25,12 +25,25 @@ void SetupController() {
   mqtt_Client.setCallback(callback);
   Serial.println("  Finished setting MQTT Parameter");
 
-  Serial.println("  Start Initialization of Dummy");
-  //Put Setup code here!
-  Serial.println("  Finished Initialization of Dummy");
+  Serial.println("  Start PINs Initialization");
+
+  //---------------- LED Strip 1 ----------------//
+  pinMode(PIN_STRIP_1_RED, OUTPUT);
+  pinMode(PIN_STRIP_1_GREEN, OUTPUT);
+  pinMode(PIN_STRIP_1_BLUE, OUTPUT);
+  pinMode(PIN_STRIP_1_WHITE, OUTPUT);
+
+  //---------------- LED Strip 2 ----------------//
+  pinMode(PIN_STRIP_2_RED, OUTPUT);
+  pinMode(PIN_STRIP_2_GREEN, OUTPUT);
+  pinMode(PIN_STRIP_2_BLUE, OUTPUT);
+  pinMode(PIN_STRIP_2_WHITE, OUTPUT);
+
+  Serial.println("  Finished Initialization of PINs");
 
   Serial.println("Finished Setup");
   Serial.println("");
+  
 }
 
 
@@ -38,56 +51,19 @@ void LoopController() {
 
   mqtt_Client.loop();
 
-
   //-- WiFi --//
-  if (WiFi.status() != WL_CONNECTED) {
-    wifi();
-  }
-
+  wifi();
 
   //-- MQTT --//
-  if ((WiFi.status() == WL_CONNECTED) and (!mqtt_Client.connected())) {
-    mqtt();
-  }
-
+  mqtt();
 
   //-- HeartBeat --//
-  if ((WiFi.status() == WL_CONNECTED) and (mqtt_Client.connected())) {
-    heartbeat();
-  }
-
+  heartbeat();
 
   //-- Printer --//
   printer();
 
-
-  //-- Controller --//
-  switch (MainState) {
-
-    case 0:
-      break;
-
-    case 10:
-      break;
-
-    case 20:
-      break;
-
-    case 99:
-      break;
-
-    default:
-      break;
-
-  }
-
-  //-- System Reboot --//
-  if (mqtt_System_Reboot) {
-    unsigned long CurMillis_SystemRebootDelay = millis();
-    if (CurMillis_SystemRebootDelay - PrevMillis_SystemRebootDelay >= TimeOut_SystemRebootDelay) {
-      PrevMillis_SystemRebootDelay = CurMillis_SystemRebootDelay;
-      Serial.println("#!# REBOOTING #!#");
-      ESP.restart();
-    }
-  }
+  //-- LED --//
+  leds();
+ 
 }

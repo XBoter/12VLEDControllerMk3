@@ -4,16 +4,6 @@ void printer() {
 
 #ifdef INFORMATION_SYSTEM
 
-  /*-------------------- System Reboot --------------------*/
-  if (Information_mqtt_System_Reboot != mqtt_System_Reboot) {
-    Serial.println("/--------- System Change ----------/");
-    Serial.print("   System Reboot     : ");
-    Serial.println(mqtt_System_Reboot);
-    Serial.println("/----------------------------------/");
-    Serial.println("");
-    Information_mqtt_System_Reboot = mqtt_System_Reboot;
-  }
-
 #endif
 
 
@@ -46,8 +36,6 @@ void printer() {
     Serial.println("   WiFi Disconnected! ");
     Serial.println("/----------------------------------/");
     Serial.println("");
-    OneTimePrintWiFiDisconnected = false;
-    OneTimePrintWiFiConnected = true;
   }
 
 #endif
@@ -55,30 +43,10 @@ void printer() {
 
 #ifdef INFORMATION_MQTT
 
-  //------------------- Parameter [mqtt_System_Reboot] -------------------//
-  if (mqtt_System_Reboot != Information_mqtt_System_Reboot) {
-    Serial.println("/----- MQTT Parameter Change ------/");
-    Serial.print("   System Reboot        : ");
-    Serial.println(mqtt_System_Reboot);
-    Serial.println("/----------------------------------/");
-    Serial.println("");
-    Information_mqtt_System_Reboot = mqtt_System_Reboot;
-  }
-
 #endif
 
 
 #ifdef INFORMATION_MAIN_STATE
-
-  /*-------------------- Main State --------------------*/
-  if (Information_MainState != MainState) {
-    Serial.println("/------- Main State Change --------/");
-    Serial.print("   Main State        : ");
-    Serial.println(MainState);
-    Serial.println("/----------------------------------/");
-    Serial.println("");
-    Information_MainState = MainState;
-  }
 
 #endif
 
