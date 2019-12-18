@@ -1,7 +1,7 @@
 
 
 void SetupController() {
-  Serial.begin(SETUP_BAUD_RATE);
+  Serial.begin(SETUP_BAUDRATE);
   Serial.println("");
   Serial.println("");
   delay(100);
@@ -21,8 +21,8 @@ void SetupController() {
   Serial.println("Start Setup");
 
   Serial.println("  Set MQTT Parameter");
-  mqtt_Client.setServer(MQTT_SERVER, MQTT_PORT);
-  mqtt_Client.setCallback(callback);
+  mqttClient.setServer(MQTT_SERVER, MQTT_PORT);
+  mqttClient.setCallback(callback);
   Serial.println("  Finished setting MQTT Parameter");
 
   Serial.println("  Start PINs Initialization");
@@ -41,21 +41,35 @@ void SetupController() {
 
   Serial.println("  Finished Initialization of PINs");
 
+  //---- Init Variables
+  PrevMillisNoHassIOConnection = millis();
+
   Serial.println("Finished Setup");
   Serial.println("");
-  
+
 }
 
 
 void LoopController() {
 
-  mqtt_Client.loop();
+  //-- Print Loop Time --//
+  /*
+    unsigned long CurMillisLoop = millis();
+    Serial.print(" Loop Time = ");
+    Serial.println((CurMillisLoop - PrevMillisLoop));
+    PrevMillisLoop = CurMillisLoop;
+  */
+
+  mqttClient.loop();
 
   //-- WiFi --//
   wifi();
 
   //-- MQTT --//
   mqtt();
+
+  //-- HassIO --//
+  hassIO();
 
   //-- HeartBeat --//
   heartbeat();
@@ -65,5 +79,5 @@ void LoopController() {
 
   //-- LED --//
   leds();
- 
+
 }

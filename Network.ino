@@ -3,17 +3,16 @@
 void wifi() {
 
   // Get current millis for WiFi reconnect Timeout
-  unsigned long CurMillis_No_WiFi_Connection = millis();
+  unsigned long CurMillisNoWiFiConnection = millis();
 
-  switch (WiFi_State) {
+  switch (WiFiState) {
 
     //-- Try Connecting to WiFi
     case 0:
-      Serial.println("Start WiFi Connection");
       WiFi.mode(WIFI_STA);
       WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-      PrevMillis_No_WiFi_Connection = CurMillis_No_WiFi_Connection; // Set prev_time for connection timeout
-      WiFi_State = 1; // Wait for WiFi to connect
+      PrevMillisNoWiFiConnection = CurMillisNoWiFiConnection; // Set prevtime for connection timeout
+      WiFiState = 1; // Wait for WiFi to connect
       break;
 
 
@@ -21,15 +20,11 @@ void wifi() {
     case 1:
       // Check if WiFI is connected
       if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("  WiFi Connected!");
-        Serial.println("");
-        WiFi_State = 10; // Check if WiFi disconnects
+        WiFiState = 10; // Check if WiFi disconnects
       }
       // Wait 5 seconds for the WiFI to connect after that try again
-      if (CurMillis_No_WiFi_Connection - PrevMillis_No_WiFi_Connection >= TimeOut_No_WiFi_Connection) {
-        Serial.println("  Connecting WiFi Failed!");
-        Serial.println("");
-        WiFi_State = 2; // Disconnect WiFi
+      if (CurMillisNoWiFiConnection - PrevMillisNoWiFiConnection >= TimeOutNoWiFiConnection) {
+        WiFiState = 2; // Disconnect WiFi
       }
       break;
 
@@ -37,21 +32,21 @@ void wifi() {
     //-- Disconnect WiFI
     case 2:
       WiFi.disconnect();
-      WiFi_State = 0; // Restart WiFi connection
+      WiFiState = 0; // Restart WiFi connection
       break;
 
 
     //-- Check if WiFI is Disctonnected
     case 10:
       if (WiFi.status() != WL_CONNECTED) {
-        WiFi_State = 0; // When disconnected reconnect
+        WiFiState = 0; // When disconnected reconnect
       }
       break;
 
 
     //-- If something crashes start again
     default:
-      WiFi_State = 0;
+      WiFiState = 0;
       break;
   }
 
@@ -61,15 +56,14 @@ void wifi() {
 void mqtt() {
 
   // Get current millis for MQTT reconnect Timeout
-  unsigned long CurMillis_No_MQTT_Connection = millis();
+  unsigned long CurMillisNoMQTTConnection = millis();
 
-  switch (MQTT_State) {
+  switch (MQTTState) {
 
     //-- Check if WiFi is connected and the client isn't connected to the MQTT broker
     case 0:
-      if ((WiFi.status() == WL_CONNECTED) and !mqtt_Client.connected()) {
-        Serial.println("Start MQTT Connection");
-        MQTT_State = 1; // Try connecting to the MQTT broker
+      if ((WiFi.status() == WL_CONNECTED) and !mqttClient.connected()) {
+        MQTTState = 1; // Try connecting to the MQTT broker
       }
       break;
 
@@ -77,35 +71,42 @@ void mqtt() {
     //-- Try connecting to the MQTT broker as long as the WiFi is avaiable
     case 1:
       if (WiFi.status() == WL_CONNECTED) {
-        mqtt_Client.connect(MQTT_CLIENT_NAME, MQTT_USERNAME, MQTT_PASSWORD);
-        PrevMillis_No_MQTT_Connection = CurMillis_No_MQTT_Connection; // Set prev_time for connection timeout
-        MQTT_State = 2;
+        mqttClient.connect(MQTT_CLIENT_NAME, MQTT_USERNAME, MQTT_PASSWORD);
+        PrevMillisNoMQTTConnection = CurMillisNoMQTTConnection; // Set prevtime for connection timeout
+        MQTTState = 2;
       } else {
-        MQTT_State = 0; // Check if WiFi is avaiable and client is disconnected
+        MQTTState = 0; // Check if WiFi is avaiable and client is disconnected
       }
       break;
 
 
     //-- If connected to the WiFi and the broker subscribe to the channel. If not after 5 seconds try again
     case 2:
-      if ((WiFi.status() == WL_CONNECTED) and mqtt_Client.connected()) {
-
-        Serial.println("  MQTT Connected!");
+      if ((WiFi.status() == WL_CONNECTED) and mqttClient.connected()) {
 
         //*** General ***//
-        mqtt_Client.subscribe(mqtt_command_HassIO_Heartbeat);    // HassIO sends a Heartbeat every second
+        mqttClient.subscribe(mqtt_HassIO_Heartbeat_command);    // HassIO sends a Heartbeat every second
 
         //*** Specific ***//
-        mqtt_Client.subscribe(mqtt_led_strip_1_json_command);    // HassIO commands for led strip 1
-        mqtt_Client.subscribe(mqtt_led_strip_2_json_command);    // HassIO commands for led strip 1
+        //-- LED Strip 1
+        mqttClient.subscribe(mqtt_strip1_power_command_topic);
+        mqttClient.subscribe(mqtt_strip1_brightness_command_topic);
+        mqttClient.subscribe(mqtt_strip1_white_value_command_topic);
+        mqttClient.subscribe(mqtt_strip1_rgb_command_topic);
+        mqttClient.subscribe(mqtt_strip1_effect_command_topic);
 
-        MQTT_State = 0;
+        //-- LED Strip 2
+        mqttClient.subscribe(mqtt_strip2_power_command_topic);
+        mqttClient.subscribe(mqtt_strip2_brightness_command_topic);
+        mqttClient.subscribe(mqtt_strip2_white_value_command_topic);
+        mqttClient.subscribe(mqtt_strip2_rgb_command_topic);
+        mqttClient.subscribe(mqtt_strip2_effect_command_topic);
+
+        MQTTState = 0;
       } else {
         // Wait 5 seconds to connect to the MQTT broker after that try again
-        if (CurMillis_No_MQTT_Connection - PrevMillis_No_MQTT_Connection >= TimeOut_No_MQTT_Connection) {
-          Serial.println("  Connecting to MQTT Failed!");
-          Serial.println("");
-          MQTT_State = 0; // Check if WiFi is aviable and client is disconnected
+        if (CurMillisNoMQTTConnection - PrevMillisNoMQTTConnection >= TimeOutNoMQTTConnection) {
+          MQTTState = 0; // Check if WiFi is aviable and client is disconnected
         }
       }
       break;
@@ -113,24 +114,63 @@ void mqtt() {
 
     //-- If something crashes start again
     default:
-      MQTT_State = 0;
+      MQTTState = 0;
       break;
 
   }
 
 }
 
+void hassIO() {
+  //-- Check if HassIO is down
+  unsigned long CurMillisNoHassIOConnection = millis();
+  if (CurMillisNoHassIOConnection - PrevMillisNoHassIOConnection >= TimeOutNoHassIOConnection) {
+    HassIOTimeout = true;
+    SendMqttParameter = true;
+  } else {
+    HassIOTimeout = false;
+  }
+
+  //-- If HassIO is avaiable again send data
+  if (SendMqttParameter and !HassIOTimeout) {
+    SendMqttParameter = false;
+    char tempValueHolder[32];
+
+    //-- LED Strip 1
+    sprintf(tempValueHolder, "%d",  FirstStrip.Power);
+    mqttClient.publish(mqtt_strip1_power_state_topic, tempValueHolder);
+    sprintf(tempValueHolder, "%d",  FirstStrip.Brightness);
+    mqttClient.publish(mqtt_strip1_brightness_state_topic, tempValueHolder);
+    sprintf(tempValueHolder, "%d",  FirstStrip.White);
+    mqttClient.publish(mqtt_strip1_white_value_state_topic, tempValueHolder);
+
+    mqttClient.publish(mqtt_strip1_rgb_state_topic, LastColorStrip1Holder);
+    mqttClient.publish(mqtt_strip1_effect_state_topic, LastEffectStrip1Holder);
+
+    //-- LED Strip 2
+    sprintf(tempValueHolder, "%d",  SecondStrip.Power);
+    mqttClient.publish(mqtt_strip2_power_state_topic, tempValueHolder);
+    sprintf(tempValueHolder, "%d",  SecondStrip.Brightness);
+    mqttClient.publish(mqtt_strip2_brightness_state_topic, tempValueHolder);
+    sprintf(tempValueHolder, "%d",  SecondStrip.White);
+    mqttClient.publish(mqtt_strip2_white_value_state_topic, tempValueHolder);
+    
+    mqttClient.publish(mqtt_strip2_rgb_state_topic, LastColorStrip2Holder);
+    mqttClient.publish(mqtt_strip2_effect_state_topic, LastEffectStrip2Holder);
+  }
+
+}
 
 void heartbeat() {
 
-  //-- Send heartbeat over MQTT
-  unsigned long CurMillis_HeartBeat = millis();
-  if (CurMillis_HeartBeat - PrevMillis_HeartBeat >= TimeOut_HeartBeat) {
-    PrevMillis_HeartBeat = CurMillis_HeartBeat;
+  //-- Send ESP Heartbeat over MQTT
+  unsigned long CurMillisESPHeartBeat = millis();
+  if (CurMillisESPHeartBeat - PrevMillisESPHeartBeat >= TimeOutESPHeartBeat) {
+    PrevMillisESPHeartBeat = CurMillisESPHeartBeat;
     char message[20];
-    sprintf(message, "%ld", ESP_Heart_Beat_Counter);
-    mqtt_Client.publish(mqtt_state_ESP_Heartbeat, message);
-    ESP_Heart_Beat_Counter++;
+    sprintf(message, "%ld", ESPHeartBeatCounter);
+    mqttClient.publish(mqtt_ESP_Heartbeat_state, message);
+    ESPHeartBeatCounter++;
   }
 
 }
