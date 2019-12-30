@@ -25,24 +25,50 @@ void SetupController() {
   mqttClient.setCallback(callback);
   Serial.println("  Finished setting MQTT Parameter");
 
+  //---- Init Variables
+  PrevMillisNoHassIOConnection = millis();
+
   Serial.println("  Start PINs Initialization");
 
   //---------------- LED Strip 1 ----------------//
-  pinMode(PIN_STRIP_1_RED, OUTPUT);
-  pinMode(PIN_STRIP_1_GREEN, OUTPUT);
-  pinMode(PIN_STRIP_1_BLUE, OUTPUT);
-  pinMode(PIN_STRIP_1_WHITE, OUTPUT);
+  if (CONTROLLER_NUM_LED_STRIPS >= 1) {
+#ifdef CONTROLLER_RGB or CONTROLLER_RGBW
+    pinMode(PIN_STRIP_1_RED, OUTPUT);
+    pinMode(PIN_STRIP_1_GREEN, OUTPUT);
+    pinMode(PIN_STRIP_1_BLUE, OUTPUT);
+#endif
+#ifdef CONTROLLER_RGBW
+    pinMode(PIN_STRIP_1_WHITE, OUTPUT);
+#endif
+  }
 
   //---------------- LED Strip 2 ----------------//
-  pinMode(PIN_STRIP_2_RED, OUTPUT);
-  pinMode(PIN_STRIP_2_GREEN, OUTPUT);
-  pinMode(PIN_STRIP_2_BLUE, OUTPUT);
-  pinMode(PIN_STRIP_2_WHITE, OUTPUT);
+  if (CONTROLLER_NUM_LED_STRIPS == 2) {
+#ifdef CONTROLLER_RGB or CONTROLLER_RGBW
+    pinMode(PIN_STRIP_2_RED, OUTPUT);
+    pinMode(PIN_STRIP_2_GREEN, OUTPUT);
+    pinMode(PIN_STRIP_2_BLUE, OUTPUT);
+#endif
+#ifdef CONTROLLER_RGBW
+    pinMode(PIN_STRIP_2_WHITE, OUTPUT);
+#endif
+  }
+
+  //---------------- Motion Detection ----------------//
+#ifdef CONTROLLER_MOTION_DETECTION
+  if (CONTROLLER_NUM_LED_STRIPS <= 1) {
+    if (CONTROLLER_NUM_MOTION_SENSORS >= 1) {
+      pinMode(PIN_MOTION_SENSOR_1, INPUT);
+      attachInterrupt(digitalPinToInterrupt(PIN_MOTION_SENSOR_1), StateMotionDetectedSensor1, CHANGE);
+    }
+    if (CONTROLLER_NUM_MOTION_SENSORS == 2) {
+      pinMode(PIN_MOTION_SENSOR_2, INPUT);
+      attachInterrupt(digitalPinToInterrupt(PIN_MOTION_SENSOR_1), StateMotionDetectedSensor2, CHANGE);
+    }
+  }
+#endif
 
   Serial.println("  Finished Initialization of PINs");
-
-  //---- Init Variables
-  PrevMillisNoHassIOConnection = millis();
 
   Serial.println("Finished Setup");
   Serial.println("");
@@ -79,5 +105,6 @@ void LoopController() {
 
   //-- LED --//
   leds();
+
 
 }

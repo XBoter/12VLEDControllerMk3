@@ -84,23 +84,38 @@ void mqtt() {
     case 2:
       if ((WiFi.status() == WL_CONNECTED) and mqttClient.connected()) {
 
-        //*** General ***//
+        //*** Global ***//
+        //-- HassIO
         mqttClient.subscribe(mqtt_HassIO_Heartbeat_command);    // HassIO sends a Heartbeat every second
+        mqttClient.subscribe(mqtt_HassIO_time_command);         // HassIO sends a time update every 30 sec
+        mqttClient.subscribe(mqtt_HassIO_sun_command);          // HassIO sends a 1 or 0 when the sun is rising or falling
+        mqttClient.subscribe(mqtt_global_good_night_command);          // HassIO sends a 1 or 0 when the sun is rising or falling
+        mqttClient.subscribe(mqtt_global_good_morning_command);          // HassIO sends a 1 or 0 when the sun is rising or falling
+
+        //*** General ***//
+        //-- Motion Detection
+        mqttClient.subscribe(mqtt_motion_detection_power_command);
+        mqttClient.subscribe(mqtt_motion_detection_rgb_command);
+        mqttClient.subscribe(mqtt_motion_detection_timeout_command);
+
 
         //*** Specific ***//
         //-- LED Strip 1
-        mqttClient.subscribe(mqtt_strip1_power_command_topic);
-        mqttClient.subscribe(mqtt_strip1_brightness_command_topic);
-        mqttClient.subscribe(mqtt_strip1_white_value_command_topic);
-        mqttClient.subscribe(mqtt_strip1_rgb_command_topic);
-        mqttClient.subscribe(mqtt_strip1_effect_command_topic);
+        mqttClient.subscribe(mqtt_strip1_power_command);
+        mqttClient.subscribe(mqtt_strip1_brightness_command);
+        mqttClient.subscribe(mqtt_strip1_white_value_command);
+        mqttClient.subscribe(mqtt_strip1_rgb_command);
+        mqttClient.subscribe(mqtt_strip1_effect_command);
 
         //-- LED Strip 2
-        mqttClient.subscribe(mqtt_strip2_power_command_topic);
-        mqttClient.subscribe(mqtt_strip2_brightness_command_topic);
-        mqttClient.subscribe(mqtt_strip2_white_value_command_topic);
-        mqttClient.subscribe(mqtt_strip2_rgb_command_topic);
-        mqttClient.subscribe(mqtt_strip2_effect_command_topic);
+        mqttClient.subscribe(mqtt_strip2_power_command);
+        mqttClient.subscribe(mqtt_strip2_brightness_command);
+        mqttClient.subscribe(mqtt_strip2_white_value_command);
+        mqttClient.subscribe(mqtt_strip2_rgb_command);
+        mqttClient.subscribe(mqtt_strip2_effect_command);
+
+
+        //-- LED Effect Modes
 
         MQTTState = 0;
       } else {
@@ -137,26 +152,26 @@ void hassIO() {
     char tempValueHolder[32];
 
     //-- LED Strip 1
-    sprintf(tempValueHolder, "%d",  FirstStrip.Power);
-    mqttClient.publish(mqtt_strip1_power_state_topic, tempValueHolder);
-    sprintf(tempValueHolder, "%d",  FirstStrip.Brightness);
-    mqttClient.publish(mqtt_strip1_brightness_state_topic, tempValueHolder);
-    sprintf(tempValueHolder, "%d",  FirstStrip.White);
-    mqttClient.publish(mqtt_strip1_white_value_state_topic, tempValueHolder);
+    sprintf(tempValueHolder, "%d",  ParameterLEDStrip1.Power);
+    mqttClient.publish(mqtt_strip1_power_state, tempValueHolder);
+    sprintf(tempValueHolder, "%d",  ParameterLEDStrip1.Brightness);
+    mqttClient.publish(mqtt_strip1_brightness_state, tempValueHolder);
+    sprintf(tempValueHolder, "%d",  ParameterLEDStrip1.White);
+    mqttClient.publish(mqtt_strip1_white_value_state, tempValueHolder);
 
-    mqttClient.publish(mqtt_strip1_rgb_state_topic, LastColorStrip1Holder);
-    mqttClient.publish(mqtt_strip1_effect_state_topic, LastEffectStrip1Holder);
+    mqttClient.publish(mqtt_strip1_rgb_state, LastColorStrip1Holder);
+    mqttClient.publish(mqtt_strip1_effect_state, LastEffectStrip1Holder);
 
     //-- LED Strip 2
-    sprintf(tempValueHolder, "%d",  SecondStrip.Power);
-    mqttClient.publish(mqtt_strip2_power_state_topic, tempValueHolder);
-    sprintf(tempValueHolder, "%d",  SecondStrip.Brightness);
-    mqttClient.publish(mqtt_strip2_brightness_state_topic, tempValueHolder);
-    sprintf(tempValueHolder, "%d",  SecondStrip.White);
-    mqttClient.publish(mqtt_strip2_white_value_state_topic, tempValueHolder);
-    
-    mqttClient.publish(mqtt_strip2_rgb_state_topic, LastColorStrip2Holder);
-    mqttClient.publish(mqtt_strip2_effect_state_topic, LastEffectStrip2Holder);
+    sprintf(tempValueHolder, "%d",  ParameterLEDStrip2.Power);
+    mqttClient.publish(mqtt_strip2_power_state, tempValueHolder);
+    sprintf(tempValueHolder, "%d",  ParameterLEDStrip2.Brightness);
+    mqttClient.publish(mqtt_strip2_brightness_state, tempValueHolder);
+    sprintf(tempValueHolder, "%d",  ParameterLEDStrip2.White);
+    mqttClient.publish(mqtt_strip2_white_value_state, tempValueHolder);
+
+    mqttClient.publish(mqtt_strip2_rgb_state, LastColorStrip2Holder);
+    mqttClient.publish(mqtt_strip2_effect_state, LastEffectStrip2Holder);
   }
 
 }

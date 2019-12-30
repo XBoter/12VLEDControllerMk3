@@ -2,12 +2,8 @@
 
 void printer() {
 
-#ifdef INFORMATION_SYSTEM
 
-#endif
-
-
-#ifdef INFORMATION_WIFI
+#ifdef INFORMATION_WIFI_STATE
 
   /*-------------------- WiFi Connected --------------------*/
   if ((WiFi.status() == WL_CONNECTED) and InformationOneTimePrintWiFiConnected) {
@@ -26,7 +22,7 @@ void printer() {
     Serial.println(WiFi.gatewayIP());
     Serial.println("/----------------------------------/");
     Serial.println("");
-    InformationOneTimePrintWiFiConnected = false;
+    InformationOneTimePrintWiFiConnected    = false;
     InformationOneTimePrintWiFiDisconnected = true;
   }
 
@@ -36,14 +32,14 @@ void printer() {
     Serial.println("   WiFi Disconnected! ");
     Serial.println("/----------------------------------/");
     Serial.println("");
-    InformationOneTimePrintWiFiConnected = true;
+    InformationOneTimePrintWiFiConnected    = true;
     InformationOneTimePrintWiFiDisconnected = false;
   }
 
 #endif
 
 
-#ifdef INFORMATION_MQTT
+#ifdef INFORMATION_MQTT_STATE
 
   /*-------------------- MQTT Connected --------------------*/
   if ((mqttClient.connected()) and InformationOneTimePrintMQTTConnected) {
@@ -51,7 +47,7 @@ void printer() {
     Serial.println("   MQTT Connected! ");
     Serial.println("/----------------------------------/");
     Serial.println("");
-    InformationOneTimePrintMQTTConnected = false;
+    InformationOneTimePrintMQTTConnected    = false;
     InformationOneTimePrintMQTTDisconnected = true;
   }
 
@@ -61,14 +57,14 @@ void printer() {
     Serial.println("   MQTT Disconnected! ");
     Serial.println("/----------------------------------/");
     Serial.println("");
-    InformationOneTimePrintMQTTConnected = true;
+    InformationOneTimePrintMQTTConnected    = true;
     InformationOneTimePrintMQTTDisconnected = false;
   }
 
 #endif
 
 
-#ifdef INFORMATION_HASSIO
+#ifdef INFORMATION_HASSIO_STATE
 
   /*-------------------- HassIO Avaiable --------------------*/
   if (!HassIOTimeout and InformationOneTimePrintHassIOAvaibale) {
@@ -76,8 +72,8 @@ void printer() {
     Serial.println("   HassIO Avaiable! ");
     Serial.println("/----------------------------------/");
     Serial.println("");
-    InformationOneTimePrintHassIOAvaibale = false;
-    InformationOneTimePrintHassIONotAvaiable = true;
+    InformationOneTimePrintHassIOAvaibale     = false;
+    InformationOneTimePrintHassIONotAvaiable  = true;
   }
 
   /*-------------------- HassIO Not Avaiable --------------------*/
@@ -86,91 +82,161 @@ void printer() {
     Serial.println("   HassIO Not Avaiable! ");
     Serial.println("/----------------------------------/");
     Serial.println("");
-    InformationOneTimePrintHassIOAvaibale = true;
-    InformationOneTimePrintHassIONotAvaiable = false;
+    InformationOneTimePrintHassIOAvaibale     = true;
+    InformationOneTimePrintHassIONotAvaiable  = false;
   }
 
 #endif
 
 
-#ifdef INFORMATION_LED_STRIP
+#ifdef INFORMATION_MQTT_LED
 
   /*-------------------- First Strip --------------------*/
   if (
-    FirstStrip.Power != InfoFirstStrip.Power or
-    FirstStrip.Brightness != InfoFirstStrip.Brightness or
-    FirstStrip.White != InfoFirstStrip.White or
-    FirstStrip.Red != InfoFirstStrip.Red or
-    FirstStrip.Green != InfoFirstStrip.Green or
-    FirstStrip.Blue != InfoFirstStrip.Blue or
-    FirstStrip.Effect != InfoFirstStrip.Effect
+    ParameterLEDStrip1.Power      != InfoParameterLEDStrip1.Power       or
+    ParameterLEDStrip1.Brightness != InfoParameterLEDStrip1.Brightness  or
+#ifdef CONTROLLER_RGBW
+    ParameterLEDStrip1.White      != InfoParameterLEDStrip1.White       or
+#endif
+    ParameterLEDStrip1.Red        != InfoParameterLEDStrip1.Red         or
+    ParameterLEDStrip1.Green      != InfoParameterLEDStrip1.Green       or
+    ParameterLEDStrip1.Blue       != InfoParameterLEDStrip1.Blue        or
+    ParameterLEDStrip1.Effect     != InfoParameterLEDStrip1.Effect
   ) {
     //-- Print Message
     Serial.println("/------ LED Strip 1 Change --------/");
     Serial.print("   Strip 1 Power      : ");
-    Serial.println(FirstStrip.Power);
+    Serial.println(ParameterLEDStrip1.Power);
     Serial.print("   Strip 1 Brightness : ");
-    Serial.println(FirstStrip.Brightness);
+    Serial.println(ParameterLEDStrip1.Brightness);
+#ifdef CONTROLLER_RGBW
     Serial.print("   Strip 1 White      : ");
-    Serial.println(FirstStrip.White);
+    Serial.println(ParameterLEDStrip1.White);
+#endif
     Serial.print("   Strip 1 Red        : ");
-    Serial.println(FirstStrip.Red);
+    Serial.println(ParameterLEDStrip1.Red);
     Serial.print("   Strip 1 Green      : ");
-    Serial.println(FirstStrip.Green);
+    Serial.println(ParameterLEDStrip1.Green);
     Serial.print("   Strip 1 Blue       : ");
-    Serial.println(FirstStrip.Blue);
+    Serial.println(ParameterLEDStrip1.Blue);
     Serial.print("   Strip 1 Effect     : ");
-    Serial.println(FirstStrip.Effect);
+    Serial.println(ParameterLEDStrip1.Effect);
     Serial.println("/----------------------------------/");
     Serial.println("");
 
     //-- Update InfoStruct
-    InfoFirstStrip.Power = FirstStrip.Power;
-    InfoFirstStrip.Brightness = FirstStrip.Brightness;
-    InfoFirstStrip.White = FirstStrip.White;
-    InfoFirstStrip.Red = FirstStrip.Red;
-    InfoFirstStrip.Green = FirstStrip.Green;
-    InfoFirstStrip.Blue = FirstStrip.Blue;
-    InfoFirstStrip.Effect = FirstStrip.Effect;
+    InfoParameterLEDStrip1.Power      = ParameterLEDStrip1.Power;
+    InfoParameterLEDStrip1.Brightness = ParameterLEDStrip1.Brightness;
+    InfoParameterLEDStrip1.White      = ParameterLEDStrip1.White;
+    InfoParameterLEDStrip1.Red        = ParameterLEDStrip1.Red;
+    InfoParameterLEDStrip1.Green      = ParameterLEDStrip1.Green;
+    InfoParameterLEDStrip1.Blue       = ParameterLEDStrip1.Blue;
+    InfoParameterLEDStrip1.Effect     = ParameterLEDStrip1.Effect;
   }
 
   /*-------------------- Second Strip --------------------*/
   if (
-    SecondStrip.Power != InfoSecondStrip.Power or
-    SecondStrip.Brightness != InfoSecondStrip.Brightness or
-    SecondStrip.White != InfoSecondStrip.White or
-    SecondStrip.Red != InfoSecondStrip.Red or
-    SecondStrip.Green != InfoSecondStrip.Green or
-    SecondStrip.Blue != InfoSecondStrip.Blue or
-    SecondStrip.Effect != InfoSecondStrip.Effect
+    ParameterLEDStrip2.Power      != InfoParameterLEDStrip2.Power       or
+    ParameterLEDStrip2.Brightness != InfoParameterLEDStrip2.Brightness  or
+#ifdef CONTROLLER_RGBW
+    ParameterLEDStrip2.White      != InfoParameterLEDStrip2.White       or
+#endif
+    ParameterLEDStrip2.Red        != InfoParameterLEDStrip2.Red         or
+    ParameterLEDStrip2.Green      != InfoParameterLEDStrip2.Green       or
+    ParameterLEDStrip2.Blue       != InfoParameterLEDStrip2.Blue        or
+    ParameterLEDStrip2.Effect     != InfoParameterLEDStrip2.Effect
   ) {
     //-- Print Message
     Serial.println("/------ LED Strip 2 Change --------/");
     Serial.print("   Strip 2 Power      : ");
-    Serial.println(SecondStrip.Power);
+    Serial.println(ParameterLEDStrip2.Power);
     Serial.print("   Strip 2 Brightness : ");
-    Serial.println(SecondStrip.Brightness);
+    Serial.println(ParameterLEDStrip2.Brightness);
+#ifdef CONTROLLER_RGBW
     Serial.print("   Strip 2 White      : ");
-    Serial.println(SecondStrip.White);
+    Serial.println(ParameterLEDStrip2.White);
+#endif
     Serial.print("   Strip 2 Red        : ");
-    Serial.println(SecondStrip.Red);
+    Serial.println(ParameterLEDStrip2.Red);
     Serial.print("   Strip 2 Green      : ");
-    Serial.println(SecondStrip.Green);
+    Serial.println(ParameterLEDStrip2.Green);
     Serial.print("   Strip 2 Blue       : ");
-    Serial.println(SecondStrip.Blue);
+    Serial.println(ParameterLEDStrip2.Blue);
     Serial.print("   Strip 2 Effect     : ");
-    Serial.println(SecondStrip.Effect);
+    Serial.println(ParameterLEDStrip2.Effect);
     Serial.println("/----------------------------------/");
     Serial.println("");
 
     //-- Update InfoStruct
-    InfoSecondStrip.Power = SecondStrip.Power;
-    InfoSecondStrip.Brightness = SecondStrip.Brightness;
-    InfoSecondStrip.White = SecondStrip.White;
-    InfoSecondStrip.Red = SecondStrip.Red;
-    InfoSecondStrip.Green = SecondStrip.Green;
-    InfoSecondStrip.Blue = SecondStrip.Blue;
-    InfoSecondStrip.Effect = SecondStrip.Effect;
+    InfoParameterLEDStrip2.Power      = ParameterLEDStrip2.Power;
+    InfoParameterLEDStrip2.Brightness = ParameterLEDStrip2.Brightness;
+    InfoParameterLEDStrip2.White      = ParameterLEDStrip2.White;
+    InfoParameterLEDStrip2.Red        = ParameterLEDStrip2.Red;
+    InfoParameterLEDStrip2.Green      = ParameterLEDStrip2.Green;
+    InfoParameterLEDStrip2.Blue       = ParameterLEDStrip2.Blue;
+    InfoParameterLEDStrip2.Effect     = ParameterLEDStrip2.Effect;
+  }
+
+#endif
+
+
+#ifdef INFORMATION_MQTT_MOTION_DETECTION
+
+  if (
+    ParameterMotion.Power      != InfoParameterMotion.Power   or
+    ParameterMotion.Red        != InfoParameterMotion.Red     or
+    ParameterMotion.Green      != InfoParameterMotion.Green   or
+    ParameterMotion.Blue       != InfoParameterMotion.Blue    or
+    ParameterMotion.Timeout    != InfoParameterMotion.Timeout
+  ) {
+    //-- Print Message
+    Serial.println("/----- Motion Detection Change ----/");
+    Serial.print("   Motion Detec Power      : ");
+    Serial.println(ParameterMotion.Power);
+    Serial.print("   Motion Detec Red        : ");
+    Serial.println(ParameterMotion.Red);
+    Serial.print("   Motion Detec Green      : ");
+    Serial.println(ParameterMotion.Green);
+    Serial.print("   Motion Detec Blue       : ");
+    Serial.println(ParameterMotion.Blue);
+    Serial.print("   Motion Detec Timeout    : ");
+    Serial.println(ParameterMotion.Timeout);
+    Serial.println("/----------------------------------/");
+    Serial.println("");
+
+    //-- Update InfoStruct
+    InfoParameterMotion.Power   = ParameterMotion.Power;
+    InfoParameterMotion.Red     = ParameterMotion.Red;
+    InfoParameterMotion.Green   = ParameterMotion.Green;
+    InfoParameterMotion.Blue    = ParameterMotion.Blue;
+    InfoParameterMotion.Timeout = ParameterMotion.Timeout;
+  }
+
+#endif
+
+
+#ifdef INFORMATION_MQTT_HASSIO
+
+  if (
+    ParameterHassIO.SunBelowHorizon   != InfoParameterHassIO.SunBelowHorizon   or
+    ParameterHassIO.TimeHour          != InfoParameterHassIO.TimeHour          or
+    ParameterHassIO.TimeMin           != InfoParameterHassIO.TimeMin
+  ) {
+    //-- Print Message
+    Serial.println("/---------- HassIO Change ---------/");
+    Serial.print("   HassIO Sun         : ");
+    Serial.println(ParameterHassIO.SunBelowHorizon);
+    Serial.print("   HassIO Time Hour   : ");
+    Serial.println(ParameterHassIO.TimeHour);
+    Serial.print("   HassIO Time Min    : ");
+    Serial.println(ParameterHassIO.TimeMin);
+    Serial.println("/----------------------------------/");
+    Serial.println("");
+
+    //-- Update InfoStruct
+    InfoParameterHassIO.SunBelowHorizon   = ParameterHassIO.SunBelowHorizon;
+    InfoParameterHassIO.TimeHour          = ParameterHassIO.TimeHour;
+    InfoParameterHassIO.TimeMin           = ParameterHassIO.TimeMin;
   }
 
 #endif
