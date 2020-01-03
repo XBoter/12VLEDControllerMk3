@@ -32,25 +32,53 @@ void SetupController() {
 
   //---------------- LED Strip 1 ----------------//
   if (CONTROLLER_NUM_LED_STRIPS >= 1) {
+    LEDStrip2PinConfig.StripID = 1;
+    LEDStrip2PinConfig.IdValid = true;
 #ifdef CONTROLLER_RGB or CONTROLLER_RGBW
+    //-- Set Pin Modes
     pinMode(PIN_STRIP_1_RED, OUTPUT);
     pinMode(PIN_STRIP_1_GREEN, OUTPUT);
     pinMode(PIN_STRIP_1_BLUE, OUTPUT);
+    //-- Set Pin IDs in struct
+    LEDStrip1PinConfig.Red    = PIN_STRIP_1_RED;
+    LEDStrip1PinConfig.Green  = PIN_STRIP_1_GREEN;
+    LEDStrip1PinConfig.Blue   = PIN_STRIP_1_BLUE;
+    //-- Set RGB Mode
+    LEDStrip1PinConfig.isRGB  = true;
 #endif
 #ifdef CONTROLLER_RGBW
+    //-- Set Pin Modes
     pinMode(PIN_STRIP_1_WHITE, OUTPUT);
+    //-- Set Pin IDs in struct
+    LEDStrip1PinConfig.White  = PIN_STRIP_1_WHITE;
+    //-- Set RGBW Mode
+    LEDStrip1PinConfig.isRGBW = true;
 #endif
   }
 
   //---------------- LED Strip 2 ----------------//
   if (CONTROLLER_NUM_LED_STRIPS == 2) {
+    LEDStrip2PinConfig.StripID = 2;
+    LEDStrip2PinConfig.IdValid = true;
 #ifdef CONTROLLER_RGB or CONTROLLER_RGBW
+    //-- Set Pin Modes
     pinMode(PIN_STRIP_2_RED, OUTPUT);
     pinMode(PIN_STRIP_2_GREEN, OUTPUT);
     pinMode(PIN_STRIP_2_BLUE, OUTPUT);
+    //-- Set Pin IDs in struct
+    LEDStrip2PinConfig.Red    = PIN_STRIP_2_RED;
+    LEDStrip2PinConfig.Green  = PIN_STRIP_2_GREEN;
+    LEDStrip2PinConfig.Blue   = PIN_STRIP_2_BLUE;
+    //-- Set RGB Mode
+    LEDStrip1PinConfig.isRGB  = true;
 #endif
 #ifdef CONTROLLER_RGBW
+    //-- Set Pin Modes
     pinMode(PIN_STRIP_2_WHITE, OUTPUT);
+    //-- Set Pin IDs in struct
+    LEDStrip2PinConfig.White  = PIN_STRIP_2_WHITE;
+    //-- Set RGBW Mode
+    LEDStrip2PinConfig.isRGBW = true;
 #endif
   }
 

@@ -2,43 +2,57 @@
 
 void leds() {
 
-  //Call Control Functions
-  ControlLEDStrip1();
-  ControlLEDStrip2();
+  //-- Call Control Functions
+  Control(HardwareConfigStrip1, CurStrip1Data);
+  Control(HardwareConfigStrip2, CurStrip2Data);
 
-  //Call Fade Functions
-  FadeLEDStrip1();
-  FadeLEDStrip2();
+  //-- Call Fade Functions
+  FadeStrip(HardwareConfigStrip1, CurStrip1Data);
+  FadeStrip(HardwareConfigStrip2, CurStrip2Data);
 
-  //Call Show Functions
-  ShowLEDStrip1();
-  ShowLEDStrip2();
+  //-- Call Show Functions
+  ShowStrip(HardwareConfigStrip1, CurStrip1Data);
+  ShowStrip(HardwareConfigStrip2, CurStrip2Data);
 }
 
 
-void ControlLEDStrip1() {
+void ControlStrip(HardwareStripConfig HardwareStrip, StripData Data) {
 
   //-- Next Mode Control
-  // Its only possible to swap to another mode when the transition has finished
   if (TransStrip1Finished) {
 
+    switch (ParameterLEDStrip1.Effect) {
 
+      case None:
+        NextLEDStrip1Mode = Normal_Mode;
+        break;
 
-  }
+      case Alarm:
+        NextLEDStrip1Mode = NoWiFi_Mode;
+        break;
 
-  //-- Mode Transition Control
-  TransitionModeStrip1(NextLEDStrip1Mode);
+      case Wakeup:
+        NextLEDStrip1Mode = NoMQTT_Mode;
+        break;
 
-  //-- Current Mode Control
-  if (TransStrip1Finished) {
+      case Sleep:
+        NextLEDStrip1Mode = NoHassIO_Mode;
+        break;
+
+      case Weekend:
+        NextLEDStrip1Mode = NoWiFi_Mode;
+        break;
+
+    }
+
     //-- Current Mode for the 1 LED Strip
-    switch (CurLEDStrip1Mode) {
+    switch (NextLEDStrip1Mode) {
 
-      case Idle_Mode:
+      case Idle_Mode:         //-- No Color display
         NextLEDStrip1.Brightness     = 0;
         break;
 
-      case Normal_Mode:
+      case Normal_Mode:       //-- Solid Color display
         NextLEDStrip1.Brightness     = ParameterLEDStrip1.Brightness;
         NextLEDStrip1.White          = ParameterLEDStrip1.White;
         NextLEDStrip1.Red            = ParameterLEDStrip1.Red;
@@ -46,59 +60,84 @@ void ControlLEDStrip1() {
         NextLEDStrip1.Blue           = ParameterLEDStrip1.Blue;
         break;
 
-      case NoWiFi_Mode:
+      case NoWiFi_Mode:       //-- 3 Green flashes
+        NextLEDStrip1.Brightness    = 255;
+        NextLEDStrip1.White         = 0;
+        NextLEDStrip1.Red           = 0;
+        NextLEDStrip1.Green         = 255;
+        NextLEDStrip1.Blue          = 0;
+        break;
+
+      case NoMQTT_Mode:       //-- 3 Blue flashes
+        NextLEDStrip1.Brightness    = 255;
+        NextLEDStrip1.White         = 0;
+        NextLEDStrip1.Red           = 0;
+        NextLEDStrip1.Green         = 0;
+        NextLEDStrip1.Blue          = 255;
+        break;
+
+      case NoHassIO_Mode:     //-- 3 Cyan flashes
+        NextLEDStrip1.Brightness    = 255;
+        NextLEDStrip1.White         = 0;
+        NextLEDStrip1.Red           = 255;
+        NextLEDStrip1.Green         = 0;
+        NextLEDStrip1.Blue          = 0;
+        break;
+
+      case GoodMorning_Mode:  //-- Brightness fading in
 
         break;
 
-      case NoMQTT_Mode:
+      case GoodNight_Mode:    //-- Brightness fading off
 
         break;
 
-      case NoHassIO_Mode:
+      case Weekend_Mode:      //-- Color cyle display
 
         break;
 
-      case GoodMorning_Mode:
+      case Alarm_Mode:        //-- Red flashing
 
         break;
 
-      case GoodNight_Mode:
-
-        break;
-
-      case Weekend_Mode:
-
-        break;
-
-      case Alarm_Mode:
-
-        break;
-
-      default:
+      default:                //-- Solid Red Display
+        NextLEDStrip1.Brightness    = 128;
+        NextLEDStrip1.White         = 0;
+        NextLEDStrip1.Red           = 255;
+        NextLEDStrip1.Green         = 0;
+        NextLEDStrip1.Blue          = 0;
         break;
 
     }
 
   }
 
+  //-- Call Transition
+  TransStrip1Finished = TransitionModeStrip1(NextLEDStrip1Mode);
+
 }
 
 boolean TransitionModeStrip1(LEDModes NextMode) {
 
   unsigned long CurMillisTransitionSpeedStrip1 = millis();
-  boolean temp = false,
+  boolean temp = false;
 
   switch (StateTransition) {
 
-    //-- Init
+    //-- Init / Idle
     case 0:
       PrevMillisTransitionSpeedStrip1 = CurMillisTransitionSpeedStrip1;
-      StateTransition = 1;
+      temp = true;
+      //Check if next mode is diffrent
+      if (NextMode != CurLEDStrip1Mode) {
+        StateTransition = 1;
+        temp = false;
+      }
       break;
 
     //-- Fade Brightness to 0
     case 1:
-      if (CurMillisTransitionSpeedStrip1 - PrevMillisTransitionSpeedStrip1 >= 10) {
+      if (CurMillisTransitionSpeedStrip1 - PrevMillisTransitionSpeedStrip1 >= 5) {
         PrevMillisTransitionSpeedStrip1 = CurMillisTransitionSpeedStrip1;
         if ((CurLEDStrip1.Brightness - 5) <= 0) {
           CurLEDStrip1.Brightness = 0;
@@ -111,11 +150,33 @@ boolean TransitionModeStrip1(LEDModes NextMode) {
 
     //-- Set Color of new mode
     case 2:
+      //-- RGB
+      CurLEDStrip1.Red    = NextLEDStrip1.Red;
+      CurLEDStrip1.Green  = NextLEDStrip1.Green;
+      CurLEDStrip1.Blue   = NextLEDStrip1.Blue;
+      //-- RGBW
+      CurLEDStrip1.White  = NextLEDStrip1.White;
+      //-- Update Time
+      PrevMillisTransitionSpeedStrip1 = CurMillisTransitionSpeedStrip1;
+      StateTransition = 3;
+      break;
 
+    //-- Fade Brightness to Value from next Mode
+    case 3:
+      if (CurMillisTransitionSpeedStrip1 - PrevMillisTransitionSpeedStrip1 >= 5) {
+        PrevMillisTransitionSpeedStrip1 = CurMillisTransitionSpeedStrip1;
+        if ((CurLEDStrip1.Brightness + 5) >= NextLEDStrip1.Brightness) {
+          CurLEDStrip1.Brightness = 0;
+          StateTransition = 4;
+        } else {
+          CurLEDStrip1.Brightness += 5;
+        }
+      }
       break;
 
     //-- Finish and Reset
-    case 3:
+    case 4:
+      CurLEDStrip1Mode = NextMode;
       StateTransition = 0;
       temp = true;
       break;
@@ -126,12 +187,10 @@ boolean TransitionModeStrip1(LEDModes NextMode) {
 }
 
 
-void ControlLEDStrip2() {
-
-}
 
 
-void FadeLEDStrip1() {
+void FadeStrip(HardwareStripConfig HardwareStrip, StripData Data) {
+
   unsigned long CurMillisFadeStrip1 = millis();
 
   //---- Fade Color LED Strip 1
@@ -225,122 +284,28 @@ void FadeLEDStrip1() {
 }
 
 
-void FadeLEDStrip2() {
-  unsigned long CurMillisFadeStrip2 = millis();
+void ShowStrip(HardwareStripConfig HardwareStrip, StripData Data) {
 
-  //---- Fade Color LED Strip 2
-  if (CurMillisFadeStrip2 - PrevMillisFadeColorStrip2 >= FadeSpeedColorStrip2) {
-    PrevMillisFadeColorStrip2 = CurMillisFadeStrip2;
-    //-- Red
-    if (CurLEDStrip2.Red < NextLEDStrip2.Red) {
-      if ((CurLEDStrip2.Red + FadeStepSize) > NextLEDStrip2.Red) {
-        CurLEDStrip2.Red = NextLEDStrip2.Red;
-      } else {
-        CurLEDStrip2.Red += FadeStepSize;
-      }
-    }
-    if (CurLEDStrip2.Red > NextLEDStrip2.Red) {
-      if ((CurLEDStrip2.Red - FadeStepSize) < NextLEDStrip2.Red) {
-        CurLEDStrip2.Red = NextLEDStrip2.Red;
-      } else {
-        CurLEDStrip2.Red -= FadeStepSize;
-      }
+  //-- Check if Strip has a ID and if the Id is valid
+  if (HardwareStrip.StripID != 0xff and HardwareStrip.IdValid) {
+
+    //-- Check if RGB is supported
+    if (HardwareStrip.isRGB) {
+      analogWrite(HardwareStrip.PinRed,   ((Data.R * 4) * Data.Brightness) / 255);
+      analogWrite(HardwareStrip.PinGreen, ((Data.G * 4) * Data.Brightness) / 255);
+      analogWrite(HardwareStrip.PinBlue,  ((Data.B * 4) * Data.Brightness) / 255);
     }
 
-    //-- Green
-    if (CurLEDStrip2.Green < NextLEDStrip2.Green) {
-      if ((CurLEDStrip2.Green + FadeStepSize) > NextLEDStrip2.Green) {
-        CurLEDStrip2.Green = NextLEDStrip2.Green;
-      } else {
-        CurLEDStrip2.Green += FadeStepSize;
-      }
-    }
-    if (CurLEDStrip2.Green > NextLEDStrip2.Green) {
-      if ((CurLEDStrip2.Green - FadeStepSize) < NextLEDStrip2.Green) {
-        CurLEDStrip2.Green = NextLEDStrip2.Green;
-      } else {
-        CurLEDStrip2.Green -= FadeStepSize;
-      }
+    //-- Check if CW is supported
+    if (HardwareStrip.isCW) {
+      analogWrite(HardwareStrip.PinColdWhite, ((Data.CW * 4) * Data.Brightness) / 255);
     }
 
-    //-- Blue
-    if (CurLEDStrip2.Blue < NextLEDStrip2.Blue) {
-      if ((CurLEDStrip2.Blue + FadeStepSize) > NextLEDStrip2.Blue) {
-        CurLEDStrip2.Blue = NextLEDStrip2.Blue;
-      } else {
-        CurLEDStrip2.Blue += FadeStepSize;
-      }
-    }
-    if (CurLEDStrip2.Blue > NextLEDStrip2.Blue) {
-      if ((CurLEDStrip2.Blue - FadeStepSize) < NextLEDStrip2.Blue) {
-        CurLEDStrip2.Blue = NextLEDStrip2.Blue;
-      } else {
-        CurLEDStrip2.Blue -= FadeStepSize;
-      }
+    //-- Check if WW is supported
+    if (HardwareStrip.isWW) {
+      analogWrite(HardwareStrip.PinWarmWhite, ((Data.WW * 4) * Data.Brightness) / 255);
     }
 
-    //-- White
-    if (CurLEDStrip2.White < NextLEDStrip2.White) {
-      if ((CurLEDStrip2.White + FadeStepSize) > NextLEDStrip2.White) {
-        CurLEDStrip2.White = NextLEDStrip2.White;
-      } else {
-        CurLEDStrip2.White += FadeStepSize;
-      }
-    }
-    if (CurLEDStrip2.White > NextLEDStrip2.White) {
-      if ((CurLEDStrip2.White - FadeStepSize) < NextLEDStrip2.White) {
-        CurLEDStrip2.White = NextLEDStrip2.White;
-      } else {
-        CurLEDStrip2.White -= FadeStepSize;
-      }
-    }
   }
 
-  //---- Fade Brightness LED Strip 2
-  if (CurMillisFadeStrip2 - PrevMillisFadeBrightnessStrip2 >= FadeSpeedBrightnessStrip2) {
-    PrevMillisFadeBrightnessStrip2 = CurMillisFadeStrip2;
-    //-- Brightness
-    if (CurLEDStrip2.Brightness < NextLEDStrip2.Brightness) {
-      if ((CurLEDStrip2.Brightness + FadeStepSize) > NextLEDStrip2.Brightness) {
-        CurLEDStrip2.Brightness = NextLEDStrip2.Brightness;
-      } else {
-        CurLEDStrip2.Brightness += FadeStepSize;
-      }
-    }
-    if (CurLEDStrip2.Brightness > NextLEDStrip2.Brightness) {
-      if ((CurLEDStrip2.Brightness - FadeStepSize) < NextLEDStrip2.Brightness) {
-        CurLEDStrip2.Brightness = NextLEDStrip2.Brightness;
-      } else {
-        CurLEDStrip2.Brightness -= FadeStepSize;
-      }
-    }
-  }
-}
-
-
-void ShowLEDStrip1() {
-  if (CONTROLLER_NUM_LED_STRIPS >= 1) {
-#ifdef CONTROLLER_RGB or CONTROLLER_RGBW
-    analogWrite(PIN_STRIP_1_RED,   ((CurLEDStrip1.Red   * 4) * CurLEDStrip1.Brightness) / 255);
-    analogWrite(PIN_STRIP_1_GREEN, ((CurLEDStrip1.Green * 4) * CurLEDStrip1.Brightness) / 255);
-    analogWrite(PIN_STRIP_1_BLUE,  ((CurLEDStrip1.Blue  * 4) * CurLEDStrip1.Brightness) / 255);
-#endif
-#ifdef CONTROLLER_RGBW
-    analogWrite(PIN_STRIP_1_WHITE, ((CurLEDStrip1.White * 4) * CurLEDStrip1.Brightness) / 255);
-#endif
-  }
-}
-
-
-void ShowLEDStrip2() {
-  if (CONTROLLER_NUM_LED_STRIPS == 2) {
-#ifdef CONTROLLER_RGB or CONTROLLER_RGBW
-    analogWrite(PIN_STRIP_2_RED,   ((CurLEDStrip2.Red   * 4) * CurLEDStrip2.Brightness) / 255);
-    analogWrite(PIN_STRIP_2_GREEN, ((CurLEDStrip2.Green * 4) * CurLEDStrip2.Brightness) / 255);
-    analogWrite(PIN_STRIP_2_BLUE,  ((CurLEDStrip2.Blue  * 4) * CurLEDStrip2.Brightness) / 255);
-#endif
-#ifdef CONTROLLER_RGBW
-    analogWrite(PIN_STRIP_2_WHITE, ((CurLEDStrip2.White * 4) * CurLEDStrip2.Brightness) / 255);
-#endif
-  }
 }

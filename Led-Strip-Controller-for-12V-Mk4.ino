@@ -28,8 +28,8 @@
 #define Name        "LED-Strip-Controller-for-12V-Mk-4"
 #define Programmer  "Nico Weidenfeller"
 #define Created     "16.12.2019"
-#define LastModifed "30.12.2019"
-#define Version     "0.0.4"
+#define LastModifed "03.01.2020"
+#define Version     "0.0.5"
 /*
    Information    :  General Rework of Code from the Mk3 Software. Changed Data send from Homeassistant to json. PIR motion detection is no Interupt based.
                      Fixed WakeUp and Sleep routines. Added Alarm, noWiFi, noHassIO and noMqtt Effect. Removed Remote ESP restart Option.
@@ -63,6 +63,8 @@
                          Tryed Json out but didnt worked so it got removed. Rolled back to classic mqtt topics for each led parameter.
                      - Version 0.0.4
                          Added led fade, hassio mqtt and cleaned code a bit. added bound check for some mqtt parameter. Starte code implementation of new LED control
+                     - Version 0.0.5
+                         Started reworking led stuff (!Not compilable!)
 
 
 */
@@ -176,8 +178,8 @@ struct MotionDetectionParameter {
 //----------------------------------------------- LED ---------------------------------------------//
 //*************************************************************************************************//
 //-- Transition
-boolean TransStrip1Finished = false;
-uint8_t StateTransition = 0;
+boolean TransStrip1Finished = true;
+uint8_t StateTransition     = 0;
 
 
 //-- Fade
@@ -188,13 +190,35 @@ const uint8_t FadeSpeedBrightnessStrip1 = 20;
 const uint8_t FadeSpeedBrightnessStrip2 = 20;
 
 //-- General
-struct LEDStripData {
-  int Brightness = 0;
-  int White      = 0;
-  int Red        = 0;
-  int Green      = 0;
-  int Blue       = 0;
-} CurLEDStrip1, CurLEDStrip2, NextLEDStrip1, NextLEDStrip2;
+struct StripData {
+  //-- Brightness
+  int Brightness  = 0;  //-- Brightness Value 0 - 255
+  //-- RGB
+  int R           = 0;  //-- Red Value   0 - 255
+  int G           = 0;  //-- Green Value 0 - 255
+  int B           = 0;  //-- Blue Value  0 - 255
+  //-- CW
+  int CW          = 0;  //-- Cold White Value 0 - 255
+  //-- WW
+  int WW          = 0;  //-- Warm White Value 0 - 255
+} CurStrip1Data, CurStrip2Data, NextStrip1Data, NextStrip1Data;
+
+struct HardwareStripConfig {
+  //-- RGB
+  uint8_t PinRed        = 0xff;   //-- Pin for R channel 0 - 254
+  uint8_t PinGreen      = 0xff;   //-- Pin for G channel 0 - 054
+  uint8_t PinBlue       = 0xff;   //-- Pin for B channel 0 - 254
+  boolean isRGB         = false;  //-- Strip support
+  //-- CW
+  uint8_t PinColdWhite  = 0xff;   //-- Pin for CW channel 0 - 254
+  boolean isCW          = false;  //-- Strip support
+  //-- WW
+  uint8_t PinWarmWhite  = 0xff;   //-- Pin for WW channel 0 - 254
+  boolean isWW          = false;  //-- Strip support
+  //-- StripID
+  uint8_t StripID       = 0xff;   //-- Strip ID 0 - 254
+  boolean IdValid       = false;  //-- ID Validator
+} HardwareConfigStrip1, HardwareConfigStrip2;
 
 
 //-- Mode Structs
