@@ -32,54 +32,66 @@ void SetupController() {
 
   //---------------- LED Strip 1 ----------------//
   if (CONTROLLER_NUM_LED_STRIPS >= 1) {
-    LEDStrip2PinConfig.StripID = 1;
-    LEDStrip2PinConfig.IdValid = true;
-#ifdef CONTROLLER_RGB or CONTROLLER_RGBW
-    //-- Set Pin Modes
-    pinMode(PIN_STRIP_1_RED, OUTPUT);
-    pinMode(PIN_STRIP_1_GREEN, OUTPUT);
-    pinMode(PIN_STRIP_1_BLUE, OUTPUT);
-    //-- Set Pin IDs in struct
-    LEDStrip1PinConfig.Red    = PIN_STRIP_1_RED;
-    LEDStrip1PinConfig.Green  = PIN_STRIP_1_GREEN;
-    LEDStrip1PinConfig.Blue   = PIN_STRIP_1_BLUE;
-    //-- Set RGB Mode
-    LEDStrip1PinConfig.isRGB  = true;
+
+    //-- Set Hardware Info
+    HardwareConfigStrip1.StripID = 1;
+    HardwareConfigStrip1.IdValid = true;
+
+    //-- Set Supported Modes
+#ifdef STRIP_1_RGB
+    HardwareConfigStrip1.isRGB = true;
+    pinMode(PIN_STRIP_1_RED,    OUTPUT);
+    pinMode(PIN_STRIP_1_GREEN,  OUTPUT);
+    pinMode(PIN_STRIP_1_BLUE,   OUTPUT);
+    HardwareConfigStrip1.PinRed       = PIN_STRIP_1_RED;
+    HardwareConfigStrip1.PinGreen     = PIN_STRIP_1_GREEN;
+    HardwareConfigStrip1.PinBlue      = PIN_STRIP_1_BLUE;
 #endif
-#ifdef CONTROLLER_RGBW
-    //-- Set Pin Modes
-    pinMode(PIN_STRIP_1_WHITE, OUTPUT);
-    //-- Set Pin IDs in struct
-    LEDStrip1PinConfig.White  = PIN_STRIP_1_WHITE;
-    //-- Set RGBW Mode
-    LEDStrip1PinConfig.isRGBW = true;
+
+#ifdef STRIP_1_CW
+    HardwareConfigStrip1.isCW = true;
+    pinMode(PIN_STRIP_1_COLD_WHITE, OUTPUT);
+    HardwareConfigStrip1.PinColdWhite = PIN_STRIP_1_COLD_WHITE;
 #endif
+
+#ifdef STRIP_1_WW
+    HardwareConfigStrip1.isWW = true;
+    pinMode(PIN_STRIP_1_WARM_WHITE, OUTPUT);
+    HardwareConfigStrip1.PinWarmWhite = PIN_STRIP_1_WARM_WHITE;
+#endif
+
   }
 
   //---------------- LED Strip 2 ----------------//
   if (CONTROLLER_NUM_LED_STRIPS == 2) {
-    LEDStrip2PinConfig.StripID = 2;
-    LEDStrip2PinConfig.IdValid = true;
-#ifdef CONTROLLER_RGB or CONTROLLER_RGBW
-    //-- Set Pin Modes
-    pinMode(PIN_STRIP_2_RED, OUTPUT);
-    pinMode(PIN_STRIP_2_GREEN, OUTPUT);
-    pinMode(PIN_STRIP_2_BLUE, OUTPUT);
-    //-- Set Pin IDs in struct
-    LEDStrip2PinConfig.Red    = PIN_STRIP_2_RED;
-    LEDStrip2PinConfig.Green  = PIN_STRIP_2_GREEN;
-    LEDStrip2PinConfig.Blue   = PIN_STRIP_2_BLUE;
-    //-- Set RGB Mode
-    LEDStrip1PinConfig.isRGB  = true;
+
+    //-- Set Hardware Info
+    HardwareConfigStrip2.StripID = 2;
+    HardwareConfigStrip2.IdValid = true;
+
+    //-- Set Supported Modes
+#ifdef STRIP_2_RGB
+    HardwareConfigStrip2.isRGB = true;
+    pinMode(PIN_STRIP_2_RED,    OUTPUT);
+    pinMode(PIN_STRIP_2_GREEN,  OUTPUT);
+    pinMode(PIN_STRIP_2_BLUE,   OUTPUT);
+    HardwareConfigStrip2.PinRed       = PIN_STRIP_2_RED;
+    HardwareConfigStrip2.PinGreen     = PIN_STRIP_2_GREEN;
+    HardwareConfigStrip2.PinBlue      = PIN_STRIP_2_BLUE;
 #endif
-#ifdef CONTROLLER_RGBW
-    //-- Set Pin Modes
-    pinMode(PIN_STRIP_2_WHITE, OUTPUT);
-    //-- Set Pin IDs in struct
-    LEDStrip2PinConfig.White  = PIN_STRIP_2_WHITE;
-    //-- Set RGBW Mode
-    LEDStrip2PinConfig.isRGBW = true;
+
+#ifdef STRIP_2_CW
+    HardwareConfigStrip2.isCW = true;
+    pinMode(PIN_STRIP_2_COLD_WHITE, OUTPUT);
+    HardwareConfigStrip2.PinColdWhite = PIN_STRIP_2_COLD_WHITE;
 #endif
+
+#ifdef STRIP_2_WW
+    HardwareConfigStrip2.isWW = true;
+    pinMode(PIN_STRIP_2_WARM_WHITE, OUTPUT);
+    HardwareConfigStrip2.PinWarmWhite = PIN_STRIP_2_WARM_WHITE;
+#endif
+
   }
 
   //---------------- Motion Detection ----------------//

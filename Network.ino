@@ -38,7 +38,9 @@ void wifi() {
 
     //-- Check if WiFI is Disctonnected
     case 10:
+      NetworkState.Wifi_Connected = true;
       if (WiFi.status() != WL_CONNECTED) {
+        NetworkState.Wifi_Connected = false;
         WiFiState = 0; // When disconnected reconnect
       }
       break;
@@ -62,7 +64,9 @@ void mqtt() {
 
     //-- Check if WiFi is connected and the client isn't connected to the MQTT broker
     case 0:
+      NetworkState.MQTT_Connected = true;
       if ((WiFi.status() == WL_CONNECTED) and !mqttClient.connected()) {
+        NetworkState.MQTT_Connected = false;
         MQTTState = 1; // Try connecting to the MQTT broker
       }
       break;
@@ -100,18 +104,44 @@ void mqtt() {
 
 
         //*** Specific ***//
-        //-- LED Strip 1
+        //---- LED Strip 1
         mqttClient.subscribe(mqtt_strip1_power_command);
-        mqttClient.subscribe(mqtt_strip1_brightness_command);
-        mqttClient.subscribe(mqtt_strip1_white_value_command);
-        mqttClient.subscribe(mqtt_strip1_rgb_command);
+        //-- Check if Brightness is needed
+        if (HardwareConfigStrip1.isRGB or HardwareConfigStrip1.isCW or HardwareConfigStrip1.isWW) {
+          mqttClient.subscribe(mqtt_strip1_brightness_command);
+        }
+        //-- Check if RGB is supported
+        if (HardwareConfigStrip1.isRGB) {
+          mqttClient.subscribe(mqtt_strip1_rgb_command);
+        }
+        //-- Check if CW is supported
+        if (HardwareConfigStrip1.isCW) {
+          mqttClient.subscribe(mqtt_strip1_cold_white_value_command);
+        }
+        //-- Check if WW is supported
+        if (HardwareConfigStrip1.isWW) {
+          mqttClient.subscribe(mqtt_strip1_warm_white_value_command);
+        }
         mqttClient.subscribe(mqtt_strip1_effect_command);
 
-        //-- LED Strip 2
+        //---- LED Strip 2
         mqttClient.subscribe(mqtt_strip2_power_command);
-        mqttClient.subscribe(mqtt_strip2_brightness_command);
-        mqttClient.subscribe(mqtt_strip2_white_value_command);
-        mqttClient.subscribe(mqtt_strip2_rgb_command);
+        //-- Check if Brightness is needed
+        if (HardwareConfigStrip2.isRGB or HardwareConfigStrip2.isCW or HardwareConfigStrip2.isWW) {
+          mqttClient.subscribe(mqtt_strip2_brightness_command);
+        }
+        //-- Check if RGB is supported
+        if (HardwareConfigStrip2.isRGB) {
+          mqttClient.subscribe(mqtt_strip2_rgb_command);
+        }
+        //-- Check if CW is supported
+        if (HardwareConfigStrip2.isCW) {
+          mqttClient.subscribe(mqtt_strip2_cold_white_value_command);
+        }
+        //-- Check if WW is supported
+        if (HardwareConfigStrip2.isWW) {
+          mqttClient.subscribe(mqtt_strip2_warm_white_value_command);
+        }
         mqttClient.subscribe(mqtt_strip2_effect_command);
 
 
@@ -140,10 +170,12 @@ void hassIO() {
   //-- Check if HassIO is down
   unsigned long CurMillisNoHassIOConnection = millis();
   if (CurMillisNoHassIOConnection - PrevMillisNoHassIOConnection >= TimeOutNoHassIOConnection) {
-    HassIOTimeout = true;
-    SendMqttParameter = true;
+    HassIOTimeout                 = true;
+    SendMqttParameter             = true;
+    NetworkState.HassIO_Connected = false;
   } else {
-    HassIOTimeout = false;
+    HassIOTimeout                 = false;
+    NetworkState.HassIO_Connected = true;
   }
 
   //-- If HassIO is avaiable again send data
@@ -154,23 +186,49 @@ void hassIO() {
     //-- LED Strip 1
     sprintf(tempValueHolder, "%d",  ParameterLEDStrip1.Power);
     mqttClient.publish(mqtt_strip1_power_state, tempValueHolder);
-    sprintf(tempValueHolder, "%d",  ParameterLEDStrip1.Brightness);
-    mqttClient.publish(mqtt_strip1_brightness_state, tempValueHolder);
-    sprintf(tempValueHolder, "%d",  ParameterLEDStrip1.White);
-    mqttClient.publish(mqtt_strip1_white_value_state, tempValueHolder);
-
-    mqttClient.publish(mqtt_strip1_rgb_state, LastColorStrip1Holder);
+    //-- Check if Brightness is needed
+    if (HardwareConfigStrip1.isRGB or HardwareConfigStrip1.isCW or HardwareConfigStrip1.isWW) {
+      sprintf(tempValueHolder, "%d",  ParameterLEDStrip1.Brightness);
+      mqttClient.publish(mqtt_strip1_brightness_state, tempValueHolder);
+    }
+    //-- Check if RGB is supported
+    if (HardwareConfigStrip1.isRGB) {
+      mqttClient.publish(mqtt_strip1_rgb_state, LastColorStrip1Holder);
+    }
+    //-- Check if CW is supported
+    if (HardwareConfigStrip1.isCW) {
+      sprintf(tempValueHolder, "%d",  ParameterLEDStrip1.ColdWhite);
+      mqttClient.publish(mqtt_strip1_cold_white_value_state, tempValueHolder);
+    }
+    //-- Check if WW is supported
+    if (HardwareConfigStrip1.isWW) {
+      sprintf(tempValueHolder, "%d",  ParameterLEDStrip1.WarmWhite);
+      mqttClient.publish(mqtt_strip1_warm_white_value_state, tempValueHolder);
+    }
     mqttClient.publish(mqtt_strip1_effect_state, LastEffectStrip1Holder);
 
     //-- LED Strip 2
     sprintf(tempValueHolder, "%d",  ParameterLEDStrip2.Power);
     mqttClient.publish(mqtt_strip2_power_state, tempValueHolder);
-    sprintf(tempValueHolder, "%d",  ParameterLEDStrip2.Brightness);
-    mqttClient.publish(mqtt_strip2_brightness_state, tempValueHolder);
-    sprintf(tempValueHolder, "%d",  ParameterLEDStrip2.White);
-    mqttClient.publish(mqtt_strip2_white_value_state, tempValueHolder);
-
-    mqttClient.publish(mqtt_strip2_rgb_state, LastColorStrip2Holder);
+    //-- Check if Brightness is needed
+    if (HardwareConfigStrip2.isRGB or HardwareConfigStrip2.isCW or HardwareConfigStrip2.isWW) {
+      sprintf(tempValueHolder, "%d",  ParameterLEDStrip2.Brightness);
+      mqttClient.publish(mqtt_strip2_brightness_state, tempValueHolder);
+    }
+    //-- Check if RGB is supported
+    if (HardwareConfigStrip2.isRGB) {
+      mqttClient.publish(mqtt_strip2_rgb_state, LastColorStrip2Holder);
+    }
+    //-- Check if CW is supported
+    if (HardwareConfigStrip1.isCW) {
+      sprintf(tempValueHolder, "%d",  ParameterLEDStrip2.ColdWhite);
+      mqttClient.publish(mqtt_strip2_cold_white_value_state, tempValueHolder);
+    }
+    //-- Check if WW is supported
+    if (HardwareConfigStrip2.isWW) {
+      sprintf(tempValueHolder, "%d",  ParameterLEDStrip2.WarmWhite);
+      mqttClient.publish(mqtt_strip2_warm_white_value_state, tempValueHolder);
+    }
     mqttClient.publish(mqtt_strip2_effect_state, LastEffectStrip2Holder);
   }
 

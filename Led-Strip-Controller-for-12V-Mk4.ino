@@ -28,8 +28,8 @@
 #define Name        "LED-Strip-Controller-for-12V-Mk-4"
 #define Programmer  "Nico Weidenfeller"
 #define Created     "16.12.2019"
-#define LastModifed "03.01.2020"
-#define Version     "0.0.5"
+#define LastModifed "05.01.2020"
+#define Version     "0.1.0"
 /*
    Information    :  General Rework of Code from the Mk3 Software. Changed Data send from Homeassistant to json. PIR motion detection is no Interupt based.
                      Fixed WakeUp and Sleep routines. Added Alarm, noWiFi, noHassIO and noMqtt Effect. Removed Remote ESP restart Option.
@@ -48,6 +48,10 @@
                      - Add Option to turn of Motion detection Britghness Control
                      - Add State Machine for MQTT and WiFi connection
                      - Add Homeassistant color and brightness value update when a effect is going on
+                     - Rework Motion Detection setup
+                     - Maybe add Warning when wrong mqtt commands (CW, WW or RGB) come in to inform the user of a wrong configuration
+                     - Rework isRGB, isCW, isWW Check for MQTT, Network etc to reduce performance if nothing is connected or else
+                     - Optimize MQTT for better performance with parameter for Strip 1 and 2 same for HassIO resend and Info tab
                      - Check ToDo marks
 
 
@@ -65,6 +69,8 @@
                          Added led fade, hassio mqtt and cleaned code a bit. added bound check for some mqtt parameter. Starte code implementation of new LED control
                      - Version 0.0.5
                          Started reworking led stuff (!Not compilable!)
+                     - Version 0.1.0
+                          Finished basic LED Control
 
 
 */
@@ -74,27 +80,37 @@
 #define SETUP_BAUDRATE 115200
 
 //---- LED STRIP 1 RGB PIN DEFINES
-#ifdef CONTROLLER_RGB or CONTROLLER_RGBW
+#ifdef STRIP_1_RGB 
 #define PIN_STRIP_1_RED D2
 #define PIN_STRIP_1_GREEN D3
 #define PIN_STRIP_1_BLUE D1
 #endif
 
-//---- LED STRIP 1 W PIN DEFINES
-#ifdef CONTROLLER_RGBW
-#define PIN_STRIP_1_WHITE ToDo
+//---- LED STRIP 1 CW PIN DEFINE
+#ifdef STRIP_1_CW
+#define PIN_STRIP_1_COLD_WHITE NULL   //ToDo
+#endif
+
+//---- LED STRIP 1 WW PIN DEFINE
+#ifdef STRIP_1_WW
+#define PIN_STRIP_1_WARM_WHITE NULL   //ToDo
 #endif
 
 //---- LED STRIP 2 RGB PIN DEFINES
-#ifdef CONTROLLER_RGB or CONTROLLER_RGBW
+#ifdef STRIP_2_RGB
 #define PIN_STRIP_2_RED D6
 #define PIN_STRIP_2_GREEN D7
 #define PIN_STRIP_2_BLUE D5
 #endif
 
-//---- LED STRIP 2 W PIN DEFINES
-#ifdef CONTROLLER_RGBW
-#define PIN_STRIP_2_WHITE ToDo
+//---- LED STRIP 2 CW PIN DEFINE
+#ifdef STRIP_2_CW
+#define PIN_STRIP_2_COLD_WHITE NULL   //ToDo
+#endif
+
+//---- LED STRIP 2 WW PIN DEFINE
+#ifdef STRIP_2_WW
+#define PIN_STRIP_2_WARM_WHITE NULL   //ToDo
 #endif
 
 //---- MOTION DETECION PIN DEFINES
@@ -102,11 +118,6 @@
 #define PIN_MOTION_SENSOR_1 D7
 #define PIN_MOTION_SENSOR_2 D6
 #endif
-
-
-//*************************************************************************************************//
-//------------------------------------------- Controller ------------------------------------------//
-//*************************************************************************************************//
 
 
 //*************************************************************************************************//
@@ -123,6 +134,14 @@ boolean StartWifi = true;
 uint8_t NoWiFiCounter = 0;
 uint16_t ESPHeartBeatCounter = 0;
 boolean HassIOTimeout = false;
+
+struct NetworkStatus {
+
+  boolean Wifi_Connected    = false;
+  boolean MQTT_Connected    = false;
+  boolean HassIO_Connected  = false;
+
+} NetworkState;
 
 
 //*************************************************************************************************//
@@ -146,22 +165,23 @@ char LastEffectStrip2Holder[16];
 //---- Specific
 //-- Effect List
 enum EffectType {
-  None,
-  Alarm,
-  Wakeup,
-  Sleep,
-  Weekend
+  e_None,
+  e_Alarm,
+  e_Wakeup,
+  e_Sleep,
+  e_Weekend
 };
 
 //-- LED
-struct LEDParameter {
-  boolean Power       = false;     // Power value on or off
-  uint8_t Red         = 0;         // Color value from red
-  uint8_t Green       = 0;         // Color value from green
-  uint8_t Blue        = 0;         // Color value from blue
-  uint8_t Brightness  = 0;         // Brightness value
-  uint8_t White       = 0;         // White value
-  EffectType Effect   = None;      // Effect
+struct StripParameter {
+  boolean Power       = false;     // Power value       0 - 1
+  uint8_t Red         = 0;         // Red value         0 - 255
+  uint8_t Green       = 0;         // Green Value       0 - 255
+  uint8_t Blue        = 0;         // Blue Value        0 - 255
+  uint8_t Brightness  = 0;         // Brightness value  0 - 255
+  uint8_t ColdWhite   = 0;         // Cold White value  0 - 255
+  uint8_t WarmWhite   = 0;         // Warm White value  0 - 255
+  EffectType Effect   = e_None;    // Effect
 } ParameterLEDStrip1, ParameterLEDStrip2, InfoParameterLEDStrip1, InfoParameterLEDStrip2;
 
 //-- Motion Detection
@@ -177,66 +197,106 @@ struct MotionDetectionParameter {
 //*************************************************************************************************//
 //----------------------------------------------- LED ---------------------------------------------//
 //*************************************************************************************************//
-//-- Transition
-boolean TransStrip1Finished = true;
-uint8_t StateTransition     = 0;
+const int MAX_COLOR_VALUE       = 255;
+const int MIN_COLOR_VALUE       = 0;
+const int MAX_BRIGHTNESS_VALUE  = 255;
+const int MIN_BRIGHTNESS_VALUE  = 0;
 
 
-//-- Fade
-const int FadeStepSize = 5;
-const uint8_t FadeSpeedColorStrip1 = 20;
-const uint8_t FadeSpeedColorStrip2 = 20;
-const uint8_t FadeSpeedBrightnessStrip1 = 20;
-const uint8_t FadeSpeedBrightnessStrip2 = 20;
-
-//-- General
+//---------- LED STRIP DATA ----------//
 struct StripData {
+
   //-- Brightness
   int Brightness  = 0;  //-- Brightness Value 0 - 255
+
   //-- RGB
   int R           = 0;  //-- Red Value   0 - 255
   int G           = 0;  //-- Green Value 0 - 255
   int B           = 0;  //-- Blue Value  0 - 255
+
   //-- CW
   int CW          = 0;  //-- Cold White Value 0 - 255
+
   //-- WW
   int WW          = 0;  //-- Warm White Value 0 - 255
-} CurStrip1Data, CurStrip2Data, NextStrip1Data, NextStrip1Data;
 
+} CurStrip1Data, CurStrip2Data, NextStrip1Data, NextStrip2Data;
+
+
+//---------- FADE DATA ----------//
+struct FadeData {
+
+  //---- Fade
+  //-- Parameter
+  uint8_t FadeStepBrightness  = 5;  //-- Fade Step for Brightness 1 - 50
+  uint8_t FadeStepColor       = 5;  //-- Fade Step for Color 1 - 50
+
+  //-- Time
+  const long TimeOutColorFade             = 10; //-- TimeOut for Color Fade
+  const long TimeOutBrightnessFade        = 10; //-- TimeOut for Brightness Fade
+  unsigned long PrevMillisColorFade       = 0;  //-- Previous Millis for Color Fade
+  unsigned long PrevMillisBrightnessFade  = 0;  //-- Previous Millis for Brightness Fade
+
+} FadeDataStrip1, FadeDataStrip2;
+
+
+//---------- LED STRIP HARDWARE CONFIG ----------//
 struct HardwareStripConfig {
+
   //-- RGB
   uint8_t PinRed        = 0xff;   //-- Pin for R channel 0 - 254
   uint8_t PinGreen      = 0xff;   //-- Pin for G channel 0 - 054
   uint8_t PinBlue       = 0xff;   //-- Pin for B channel 0 - 254
   boolean isRGB         = false;  //-- Strip support
+
   //-- CW
   uint8_t PinColdWhite  = 0xff;   //-- Pin for CW channel 0 - 254
   boolean isCW          = false;  //-- Strip support
+
   //-- WW
   uint8_t PinWarmWhite  = 0xff;   //-- Pin for WW channel 0 - 254
   boolean isWW          = false;  //-- Strip support
+
   //-- StripID
   uint8_t StripID       = 0xff;   //-- Strip ID 0 - 254
   boolean IdValid       = false;  //-- ID Validator
+
 } HardwareConfigStrip1, HardwareConfigStrip2;
 
+//---------- MODE LIST ----------//
+enum StripMode {
+  Idle,
+  Normal,
+  Motion,
+  NoWiFi,
+  NoMQTT,
+  NoHassIO,
+  Wakeup,
+  Sleep,
+  Weekend,
+  Alarm
+};
 
-//-- Mode Structs
+//---------- TRANSITION DATA ----------//
+struct TransitionData {
+
+  StripMode CurMode     = Idle;   //-- Init Mode Idle
+  StripMode NextMode    = Idle;   //-- Init Mode Idle
+
+  boolean Finished      = true;   //-- Is set true when the transition has finished
+  uint8_t State         = 0;      //-- State of the transition
+  int BackUpBrightness  = 0;      //-- Backup Brightness for NextData
+
+} TransitionDataStrip1, TransitionDataStrip2;
 
 
-//-- Mode List
-enum LEDModes {
-  Idle_Mode,
-  Normal_Mode,
-  Motion_Mode,
-  NoWiFi_Mode,
-  NoMQTT_Mode,
-  NoHassIO_Mode,
-  GoodMorning_Mode,
-  GoodNight_Mode,
-  Weekend_Mode,
-  Alarm_Mode
-} CurLEDStrip1Mode, NextLEDStrip1Mode, CurLEDStrip2Mode, NextLEDStrip2Mode;
+//---------- LED CONTROL DATA ----------//
+struct LEDControlData {
+
+  uint8_t dummy = 0;
+
+} ControlDataStrip1, ControlDataStrip2;
+
 
 //*************************************************************************************************//
 //---------------------------------------------- Motion -------------------------------------------//
@@ -284,12 +344,6 @@ unsigned long PrevMillisNoMQTTConnection           = 0;
 unsigned long PrevMillisNoHassIOConnection         = 0;
 unsigned long PrevMillisESPHeartBeat               = 0;
 unsigned long PrevMillisLoop                       = 0;
-unsigned long PrevMillisFadeColorStrip1            = 0;
-unsigned long PrevMillisFadeColorStrip2            = 0;
-unsigned long PrevMillisFadeBrightnessStrip1       = 0;
-unsigned long PrevMillisFadeBrightnessStrip2       = 0;
-unsigned long PrevMillisTransitionSpeedStrip1      = 0;
-unsigned long PrevMillisTransitionSpeedStrip2      = 0;
 
 unsigned long TimeOutExample                       = 1000;    // 1.00 Seconds
 unsigned long TimeOutNoWiFiConnection              = 5000;    // 5.00 Seconds

@@ -95,12 +95,17 @@ void printer() {
   if (
     ParameterLEDStrip1.Power      != InfoParameterLEDStrip1.Power       or
     ParameterLEDStrip1.Brightness != InfoParameterLEDStrip1.Brightness  or
-#ifdef CONTROLLER_RGBW
-    ParameterLEDStrip1.White      != InfoParameterLEDStrip1.White       or
-#endif
+#ifdef STRIP_1_RGB
     ParameterLEDStrip1.Red        != InfoParameterLEDStrip1.Red         or
     ParameterLEDStrip1.Green      != InfoParameterLEDStrip1.Green       or
     ParameterLEDStrip1.Blue       != InfoParameterLEDStrip1.Blue        or
+#endif
+#ifdef STRIP_1_CW
+    ParameterLEDStrip1.ColdWhite  != InfoParameterLEDStrip1.ColdWhite   or
+#endif
+#ifdef STRIP_1_WW
+    ParameterLEDStrip1.WarmWhite  != InfoParameterLEDStrip1.WarmWhite   or
+#endif
     ParameterLEDStrip1.Effect     != InfoParameterLEDStrip1.Effect
   ) {
     //-- Print Message
@@ -109,16 +114,22 @@ void printer() {
     Serial.println(ParameterLEDStrip1.Power);
     Serial.print("   Strip 1 Brightness : ");
     Serial.println(ParameterLEDStrip1.Brightness);
-#ifdef CONTROLLER_RGBW
-    Serial.print("   Strip 1 White      : ");
-    Serial.println(ParameterLEDStrip1.White);
-#endif
+#ifdef STRIP_1_RGB
     Serial.print("   Strip 1 Red        : ");
     Serial.println(ParameterLEDStrip1.Red);
     Serial.print("   Strip 1 Green      : ");
     Serial.println(ParameterLEDStrip1.Green);
     Serial.print("   Strip 1 Blue       : ");
     Serial.println(ParameterLEDStrip1.Blue);
+#endif
+#ifdef STRIP_1_CW
+    Serial.print("   Strip 1 Cold White : ");
+    Serial.println(ParameterLEDStrip1.ColdWhite);
+#endif
+#ifdef STRIP_1_WW
+    Serial.print("   Strip 1 Warm White : ");
+    Serial.println(ParameterLEDStrip1.WarmWhite);
+#endif
     Serial.print("   Strip 1 Effect     : ");
     Serial.println(ParameterLEDStrip1.Effect);
     Serial.println("/----------------------------------/");
@@ -127,10 +138,11 @@ void printer() {
     //-- Update InfoStruct
     InfoParameterLEDStrip1.Power      = ParameterLEDStrip1.Power;
     InfoParameterLEDStrip1.Brightness = ParameterLEDStrip1.Brightness;
-    InfoParameterLEDStrip1.White      = ParameterLEDStrip1.White;
     InfoParameterLEDStrip1.Red        = ParameterLEDStrip1.Red;
     InfoParameterLEDStrip1.Green      = ParameterLEDStrip1.Green;
     InfoParameterLEDStrip1.Blue       = ParameterLEDStrip1.Blue;
+    InfoParameterLEDStrip1.ColdWhite  = ParameterLEDStrip1.ColdWhite;
+    InfoParameterLEDStrip1.WarmWhite  = ParameterLEDStrip1.WarmWhite;
     InfoParameterLEDStrip1.Effect     = ParameterLEDStrip1.Effect;
   }
 
@@ -138,12 +150,17 @@ void printer() {
   if (
     ParameterLEDStrip2.Power      != InfoParameterLEDStrip2.Power       or
     ParameterLEDStrip2.Brightness != InfoParameterLEDStrip2.Brightness  or
-#ifdef CONTROLLER_RGBW
-    ParameterLEDStrip2.White      != InfoParameterLEDStrip2.White       or
-#endif
+#ifdef STRIP_2_RGB
     ParameterLEDStrip2.Red        != InfoParameterLEDStrip2.Red         or
     ParameterLEDStrip2.Green      != InfoParameterLEDStrip2.Green       or
     ParameterLEDStrip2.Blue       != InfoParameterLEDStrip2.Blue        or
+#endif
+#ifdef STRIP_2_CW
+    ParameterLEDStrip2.ColdWhite  != InfoParameterLEDStrip2.ColdWhite   or
+#endif
+#ifdef STRIP_2_WW
+    ParameterLEDStrip2.WarmWhite  != InfoParameterLEDStrip2.WarmWhite   or
+#endif
     ParameterLEDStrip2.Effect     != InfoParameterLEDStrip2.Effect
   ) {
     //-- Print Message
@@ -152,16 +169,22 @@ void printer() {
     Serial.println(ParameterLEDStrip2.Power);
     Serial.print("   Strip 2 Brightness : ");
     Serial.println(ParameterLEDStrip2.Brightness);
-#ifdef CONTROLLER_RGBW
-    Serial.print("   Strip 2 White      : ");
-    Serial.println(ParameterLEDStrip2.White);
-#endif
+#ifdef STRIP_2_RGB
     Serial.print("   Strip 2 Red        : ");
     Serial.println(ParameterLEDStrip2.Red);
     Serial.print("   Strip 2 Green      : ");
     Serial.println(ParameterLEDStrip2.Green);
     Serial.print("   Strip 2 Blue       : ");
     Serial.println(ParameterLEDStrip2.Blue);
+#endif
+#ifdef STRIP_2_CW
+    Serial.print("   Strip 2 Cold White : ");
+    Serial.println(ParameterLEDStrip2.ColdWhite);
+#endif
+#ifdef STRIP_2_WW
+    Serial.print("   Strip 2 Warm White : ");
+    Serial.println(ParameterLEDStrip2.WarmWhite);
+#endif
     Serial.print("   Strip 2 Effect     : ");
     Serial.println(ParameterLEDStrip2.Effect);
     Serial.println("/----------------------------------/");
@@ -170,10 +193,11 @@ void printer() {
     //-- Update InfoStruct
     InfoParameterLEDStrip2.Power      = ParameterLEDStrip2.Power;
     InfoParameterLEDStrip2.Brightness = ParameterLEDStrip2.Brightness;
-    InfoParameterLEDStrip2.White      = ParameterLEDStrip2.White;
     InfoParameterLEDStrip2.Red        = ParameterLEDStrip2.Red;
     InfoParameterLEDStrip2.Green      = ParameterLEDStrip2.Green;
     InfoParameterLEDStrip2.Blue       = ParameterLEDStrip2.Blue;
+    InfoParameterLEDStrip2.ColdWhite  = ParameterLEDStrip2.ColdWhite;
+    InfoParameterLEDStrip2.WarmWhite  = ParameterLEDStrip2.WarmWhite;
     InfoParameterLEDStrip2.Effect     = ParameterLEDStrip2.Effect;
   }
 
