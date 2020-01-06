@@ -16,20 +16,22 @@
 #include <secrets_mqtt.h>
 
 //+++ Defines for Information Print +++//
+#define INFORMATION_MASTER_PRINT
+
 #define INFORMATION_WIFI_STATE
 #define INFORMATION_MQTT_STATE
 #define INFORMATION_HASSIO_STATE
 #define INFORMATION_MQTT_LED
 #define INFORMATION_MQTT_MOTION_DETECTION
 #define INFORMATION_MQTT_HASSIO
-#define INFORMATION_MAIN_STATE
+#define INFORMATION_LIGHT_STATE
 
 //-------------------- Basic Information --------------------//
 #define Name        "LED-Strip-Controller-for-12V-Mk-4"
 #define Programmer  "Nico Weidenfeller"
 #define Created     "16.12.2019"
-#define LastModifed "05.01.2020"
-#define Version     "0.1.0"
+#define LastModifed "06.01.2020"
+#define Version     "0.1.1"
 /*
    Information    :  General Rework of Code from the Mk3 Software. Changed Data send from Homeassistant to json. PIR motion detection is no Interupt based.
                      Fixed WakeUp and Sleep routines. Added Alarm, noWiFi, noHassIO and noMqtt Effect. Removed Remote ESP restart Option.
@@ -52,6 +54,7 @@
                      - Maybe add Warning when wrong mqtt commands (CW, WW or RGB) come in to inform the user of a wrong configuration
                      - Rework isRGB, isCW, isWW Check for MQTT, Network etc to reduce performance if nothing is connected or else
                      - Optimize MQTT for better performance with parameter for Strip 1 and 2 same for HassIO resend and Info tab
+                     - Optimize Prio selection so not all CurModes need to be checked
                      - Check ToDo marks
 
 
@@ -70,7 +73,9 @@
                      - Version 0.0.5
                          Started reworking led stuff (!Not compilable!)
                      - Version 0.1.0
-                          Finished basic LED Control
+                         Finished basic LED Control
+                     - Version 0.1.1
+                         Added Effects for NoHassIO, NoMQTT and NoWiFi. Fixed prio mode swap
 
 
 */
@@ -80,7 +85,7 @@
 #define SETUP_BAUDRATE 115200
 
 //---- LED STRIP 1 RGB PIN DEFINES
-#ifdef STRIP_1_RGB 
+#ifdef STRIP_1_RGB
 #define PIN_STRIP_1_RED D2
 #define PIN_STRIP_1_GREEN D3
 #define PIN_STRIP_1_BLUE D1
@@ -287,15 +292,60 @@ struct TransitionData {
   uint8_t State         = 0;      //-- State of the transition
   int BackUpBrightness  = 0;      //-- Backup Brightness for NextData
 
-} TransitionDataStrip1, TransitionDataStrip2;
+} TransitionDataStrip1, TransitionDataStrip2, InfoTransitionDataStrip1, InfoTransitionDataStrip2;
 
+//---------- BASIC EFFECT ----------//
+struct BasicEffect {
 
-//---------- LED CONTROL DATA ----------//
-struct LEDControlData {
+  //-- Brightness
+  int Brightness  = 0;
 
-  uint8_t dummy = 0;
+  //-- RGB
+  int R   = 0;
+  int G   = 0;
+  int B   = 0;
 
-} ControlDataStrip1, ControlDataStrip2;
+  //-- CW
+  int CW  = 0;
+
+  //-- WW
+  int WW  = 0;
+
+  //-- Timer / Delay
+  unsigned long PrevMillis    = 0;
+  const unsigned long Timeout = 10;
+
+  //-- State
+  uint8_t State     = 0;
+  uint8_t SubState  = 0;
+
+  //-- Counter
+  uint8_t Counter     = 0;
+  uint8_t SubCounter  = 0;
+
+};
+
+//---------- EFFECT DATA LIST ----------//
+struct EffectDataList {
+
+  //---- Effect List
+  //-- Prio 1
+  BasicEffect NoHassIO;
+  BasicEffect NoMQTT;
+  BasicEffect NoWiFi;
+
+  //-- Prio 2
+  BasicEffect None;
+  BasicEffect Alarm;
+  BasicEffect Wakeup;
+  BasicEffect Sleep;
+  BasicEffect Weekend;
+
+  //-- Prio 3
+  BasicEffect Motion;
+
+} EffectDataListStrip1, EffectDataListStrip2;
+
 
 
 //*************************************************************************************************//

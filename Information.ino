@@ -266,7 +266,51 @@ void printer() {
 #endif
 
 
-#ifdef INFORMATION_MAIN_STATE
+#ifdef INFORMATION_LIGHT_STATE
+
+  if (TransitionDataStrip1.CurMode != InfoTransitionDataStrip1.CurMode) {
+
+    Serial.println("/------ Mode Strip 1 Change -------/");
+    Serial.print("   Current Mode       : ");
+    switch (TransitionDataStrip1.CurMode) {
+      case Idle:
+        Serial.print("Idle");
+        break;
+      case Normal:
+        Serial.print("Normal");
+        break;
+      case Motion:
+        Serial.print("Motion");
+        break;
+      case NoWiFi:
+        Serial.print("NoWiFi");
+        break;
+      case NoMQTT:
+        Serial.print("NoMQTT");
+        break;
+      case NoHassIO:
+        Serial.print("NoHassIO");
+        break;
+      case Wakeup:
+        Serial.print("Wakeup");
+        break;
+      case Sleep:
+        Serial.print("Sleep");
+        break;
+      case Weekend:
+        Serial.print("Weekend");
+        break;
+      case Alarm:
+        Serial.print("Alarm");
+        break;
+    }
+    Serial.println("");
+    Serial.println("/----------------------------------/");
+    Serial.println("");
+
+    //-- Update InfoStruct
+    InfoTransitionDataStrip1.CurMode = TransitionDataStrip1.CurMode;
+  }
 
 #endif
 

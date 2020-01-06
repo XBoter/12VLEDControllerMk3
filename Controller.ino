@@ -141,7 +141,9 @@ void LoopController() {
   heartbeat();
 
   //-- Printer --//
+#ifdef INFORMATION_MASTER_PRINT
   printer();
+#endif
 
   //-- LED --//
   leds();

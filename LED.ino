@@ -3,8 +3,8 @@
 void leds() {
 
   //-- Call Control Function
-  StripControl(&HardwareConfigStrip1, &CurStrip1Data, &NextStrip1Data, &TransitionDataStrip1, &ParameterLEDStrip1);
-  StripControl(&HardwareConfigStrip2, &CurStrip2Data, &NextStrip2Data, &TransitionDataStrip2, &ParameterLEDStrip2);
+  StripControl(&HardwareConfigStrip1, &CurStrip1Data, &NextStrip1Data, &TransitionDataStrip1, &ParameterLEDStrip1, &EffectDataListStrip1);
+  StripControl(&HardwareConfigStrip2, &CurStrip2Data, &NextStrip2Data, &TransitionDataStrip2, &ParameterLEDStrip2, &EffectDataListStrip2);
 
   //-- Call Fade Function
   FadeStrip(&HardwareConfigStrip1, &CurStrip1Data, &NextStrip1Data, &FadeDataStrip1, &TransitionDataStrip1);
@@ -17,128 +17,412 @@ void leds() {
 }
 
 
-void StripControl(HardwareStripConfig *HardwareStrip, StripData *CurData, StripData *NextData, TransitionData *TransData, StripParameter *Strip) {
+void StripControl(HardwareStripConfig   *HardwareStrip,
+                  StripData             *CurData,
+                  StripData             *NextData,
+                  TransitionData        *TransData,
+                  StripParameter        *Strip,
+                  EffectDataList        *EffectData) {
 
   //-- Mode Control
   /*
-     Prio from bottom highest to lowest at the top
+     Prio from bottom highest to lowest at the top.
+     Mode can only be changed when in idle
   */
   if (TransData->Finished) {
 
+    //---- Idle
+    // PRIO Reset
+    if (TransData->CurMode != Idle) {
+      TransData->NextMode = Idle;
+    }
+
     //---- Motion
     // PRIO 3
+    if (
+      // PRIO Reset
+      TransData->CurMode == Idle      or
+      // PRIO 3
+      TransData->CurMode == Motion
+    ) {
+
+    }
 
     //---- Effects
     // PRIO 2
-    if (Strip->Power) {
-      switch (Strip->Effect) {
+    if (
+      // PRIO Reset
+      TransData->CurMode == Idle      or
+      // PRIO 3
+      TransData->CurMode == Motion    or
+      // PRIO 2
+      TransData->CurMode == Normal    or
+      TransData->CurMode == Alarm     or
+      TransData->CurMode == Wakeup    or
+      TransData->CurMode == Sleep     or
+      TransData->CurMode == Weekend
+    ) {
 
-        //-- None / Normal mode
-        case e_None:
-          //-- Set new Mode
-          TransData->NextMode = Normal;
-          //-- Set Mode Parameter
-          //-- Check if RGB is supported
-          if (HardwareStrip->isRGB) {
-            NextData->R = Strip->Red;
-            NextData->G = Strip->Green;
-            NextData->B = Strip->Blue;
-          }
-          //-- Check if CW is supported
-          if (HardwareStrip->isCW) {
-            NextData->CW = Strip->ColdWhite;
-          }
-          //-- Check if WW is supported
-          if (HardwareStrip->isWW) {
-            NextData->CW = Strip->WarmWhite;
-          }
-          //-- Check if Brightness is used
-          if (HardwareStrip->isRGB or HardwareStrip->isCW or HardwareStrip->isWW) {
-            NextData->Brightness = Strip->Brightness;
-          }
-          break;
+      if (Strip->Power) {
+        switch (Strip->Effect) {
 
-        //-- Alarm Mode
-        case e_Alarm:
-          //-- Set new Mode
-          TransData->NextMode = Alarm;
-          //-- Set Mode Parameter
-          NextData->R = MAX_COLOR_VALUE;
-          NextData->G = 0;
-          NextData->B = 0;
-          NextData->CW = 0;
-          NextData->WW = 0;
-          NextData->Brightness = MAX_BRIGHTNESS_VALUE;
-          break;
+          //-- None / Normal mode
+          case e_None:
+            //-- Set new Mode
+            TransData->NextMode = Normal;
+            //-- Set Mode Parameter
+            //-- Check if RGB is supported
+            if (HardwareStrip->isRGB) {
+              NextData->R = Strip->Red;
+              NextData->G = Strip->Green;
+              NextData->B = Strip->Blue;
+            }
+            //-- Check if CW is supported
+            if (HardwareStrip->isCW) {
+              NextData->CW = Strip->ColdWhite;
+            }
+            //-- Check if WW is supported
+            if (HardwareStrip->isWW) {
+              NextData->CW = Strip->WarmWhite;
+            }
+            //-- Check if Brightness is used
+            if (HardwareStrip->isRGB or HardwareStrip->isCW or HardwareStrip->isWW) {
+              NextData->Brightness = Strip->Brightness;
+            }
+            break;
 
-        //-- WakeUp Mode
-        case e_Wakeup:
-          //-- Set new Mode
-          TransData->NextMode = Wakeup;
-          //-- Set Mode Parameter
+          //-- Alarm Mode
+          case e_Alarm:
+            //-- Set new Mode
+            TransData->NextMode = Alarm;
+            //-- Set Mode Parameter
+            NextData->R = MAX_COLOR_VALUE;
+            NextData->G = 0;
+            NextData->B = 0;
+            NextData->CW = 0;
+            NextData->WW = 0;
+            NextData->Brightness = MAX_BRIGHTNESS_VALUE;
+            break;
 
-          break;
+          //-- WakeUp Mode
+          case e_Wakeup:
+            //-- Set new Mode
+            TransData->NextMode = Wakeup;
+            //-- Set Mode Parameter
 
-        //-- Sleep Mode
-        case e_Sleep:
-          //-- Set new Mode
-          TransData->NextMode = Sleep;
-          //-- Set Mode Parameter
+            break;
 
-          break;
+          //-- Sleep Mode
+          case e_Sleep:
+            //-- Set new Mode
+            TransData->NextMode = Sleep;
+            //-- Set Mode Parameter
 
-        //-- Weekend Mode
-        case e_Weekend:
-          //-- Set new Mode
-          TransData->NextMode = Weekend;
-          //-- Set Mode Parameter
+            break;
 
-          break;
+          //-- Weekend Mode
+          case e_Weekend:
+            //-- Set new Mode
+            TransData->NextMode = Weekend;
+            //-- Set Mode Parameter
 
+            break;
+
+        }
+      } else {
+        NextData->Brightness = 0;  //-- Power Off
       }
-    } else {
-      NextData->Brightness = 0;  //-- Power Off
     }
 
     //---- Status Messages
     // PRIO 1
     //-- NoHassIO
-    if (!NetworkState.HassIO_Connected) {
-      //-- Set new Mode
-      TransData->NextMode = NoHassIO;
-      //-- Set Mode Parameter
-      NextData->R = 0;
-      NextData->G = MAX_COLOR_VALUE;
-      NextData->B = MAX_COLOR_VALUE;
-      NextData->CW = 0;
-      NextData->WW = 0;
-      NextData->Brightness = MAX_BRIGHTNESS_VALUE;
-    }
+    if (
+      // PRIO Reset
+      TransData->CurMode == Idle      or
+      // PRIO 3
+      TransData->CurMode == Motion    or
+      // PRIO 2
+      TransData->CurMode == Normal    or
+      TransData->CurMode == Alarm     or
+      TransData->CurMode == Wakeup    or
+      TransData->CurMode == Sleep     or
+      TransData->CurMode == Weekend   or
+      // PRIO 1
+      TransData->CurMode == NoHassIO  or
+      TransData->CurMode == NoMQTT    or
+      TransData->CurMode == NoWiFi
+    ) {
 
-    //-- NoMQTT
-    if (!NetworkState.MQTT_Connected) {
-      //-- Set new Mode
-      TransData->NextMode = NoMQTT;
-      //-- Set Mode Parameter
-      NextData->R = 0;
-      NextData->G = 0;
-      NextData->B = MAX_COLOR_VALUE;
-      NextData->CW = 0;
-      NextData->WW = 0;
-      NextData->Brightness = MAX_BRIGHTNESS_VALUE;
-    }
+      if (!NetworkState.HassIO_Connected) {
 
-    //-- NoWiFi
-    if (!NetworkState.Wifi_Connected) {
-      //-- Set new Mode
-      TransData->NextMode = NoWiFi;
-      //-- Set Mode Parameter
-      NextData->R = 0;
-      NextData->G = MAX_COLOR_VALUE;
-      NextData->B = 0;
-      NextData->CW = 0;
-      NextData->WW = 0;
-      NextData->Brightness = MAX_BRIGHTNESS_VALUE;
+        //-- Check if CurMode is Idle or unequal NoHassIO if so reset
+        if (TransData->CurMode == Idle or TransData->CurMode != NoHassIO) {
+          //-- Reset
+          EffectData->NoHassIO.State      = 0;
+          EffectData->NoHassIO.SubState   = 0;
+          EffectData->NoHassIO.Counter    = 0;
+          EffectData->NoHassIO.SubCounter = 0;
+        }
+
+        //-- Set new Mode
+        TransData->NextMode = NoHassIO;
+
+        //-- Start Effect sequence
+        switch (EffectData->NoHassIO.State) {
+
+          case 0: //-- Set Effect Start Parameter and wait for the Transition to end
+            //-- Set Start Parameter
+            if (TransData->CurMode != NoMQTT and TransData->CurMode != NoWiFi) {
+              NextData->R           = 0;
+              NextData->G           = MAX_COLOR_VALUE;
+              NextData->B           = MAX_COLOR_VALUE;
+              NextData->CW          = 0;
+              NextData->WW          = 0;
+              NextData->Brightness  = MAX_BRIGHTNESS_VALUE;
+            }
+            //-- Wait for Transition to finish
+            if (TransData->Finished and (TransData->CurMode == TransData->NextMode)) {
+              EffectData->NoHassIO.PrevMillis = millis();
+              EffectData->NoHassIO.State      = 1;
+            }
+            break;
+
+          case 1: //-- Run Effect
+            if (EffectData->NoHassIO.Counter <= 3) {
+              if ((millis() - EffectData->NoHassIO.PrevMillis) >= EffectData->NoHassIO.Timeout) {
+
+                switch (EffectData->NoHassIO.SubState) {
+
+                  case 0: //-- Fade Brightness to 0
+                    NextData->Brightness = 0;
+                    if (CurData->Brightness == NextData->Brightness) {
+                      EffectData->NoHassIO.SubState = 1;
+                    }
+                    break;
+
+                  case 1: //-- Wait 100 * NoHassIO.Timeout
+                    if (EffectData->NoHassIO.SubCounter == 100) {
+                      EffectData->NoHassIO.SubCounter = 0;
+                      EffectData->NoHassIO.SubState   = 2;
+                    } else {
+                      EffectData->NoHassIO.SubCounter++;
+                    }
+                    break;
+
+                  case 2: //-- Fade Brightness to Max
+                    NextData->Brightness = MAX_BRIGHTNESS_VALUE;
+                    if (CurData->Brightness == NextData->Brightness) {
+                      EffectData->NoHassIO.SubState = 3;
+                    }
+                    break;
+
+                  case 3: //-- Wait 50 * NoHassIO.Timeout => Restart
+                    if (EffectData->NoHassIO.SubCounter == 50) {
+                      EffectData->NoHassIO.SubCounter = 0;  //-- Reset
+                      EffectData->NoHassIO.SubState   = 0;  //-- Reset
+                      EffectData->NoHassIO.Counter++;       //-- Count
+                    } else {
+                      EffectData->NoHassIO.SubCounter++;
+                    }
+                    break;
+
+                }
+
+              }
+            } else {
+              EffectData->NoHassIO.State = 2;
+            }
+            break;
+
+          case 2: //-- Never ending wait until connection is established again
+            NextData->Brightness = 0; //-- Power Off Strip
+            break;
+
+        }
+
+      }
+
+      //-- NoMQTT
+      if (!NetworkState.MQTT_Connected) {
+
+        //-- Check if CurMode is Idle or unequal NoMQTT if so reset
+        if (TransData->CurMode == Idle or TransData->CurMode != NoMQTT) {
+          //-- Reset
+          EffectData->NoMQTT.State      = 0;
+          EffectData->NoMQTT.SubState   = 0;
+          EffectData->NoMQTT.Counter    = 0;
+          EffectData->NoMQTT.SubCounter = 0;
+        }
+
+        //-- Set new Mode
+        TransData->NextMode = NoMQTT;
+
+        //-- Start Effect sequence
+        switch (EffectData->NoMQTT.State) {
+
+          case 0: //-- Set Effect Start Parameter and wait for the Transition to end
+            //-- Set Start Parameter
+            if (TransData->CurMode != NoHassIO and TransData->CurMode != NoWiFi) {
+              NextData->R           = 0;
+              NextData->G           = 0;
+              NextData->B           = MAX_COLOR_VALUE;
+              NextData->CW          = 0;
+              NextData->WW          = 0;
+              NextData->Brightness  = MAX_BRIGHTNESS_VALUE;
+            }
+            //-- Wait for Transition to finish
+            if (TransData->Finished and (TransData->CurMode == TransData->NextMode)) {
+              EffectData->NoMQTT.PrevMillis = millis();
+              EffectData->NoMQTT.State      = 1;
+            }
+            break;
+
+          case 1: //-- Run Effect
+            if (EffectData->NoMQTT.Counter <= 3) {
+              if ((millis() - EffectData->NoMQTT.PrevMillis) >= EffectData->NoMQTT.Timeout) {
+
+                switch (EffectData->NoMQTT.SubState) {
+
+                  case 0: //-- Fade Brightness to 0
+                    NextData->Brightness = 0;
+                    if (CurData->Brightness == NextData->Brightness) {
+                      EffectData->NoMQTT.SubState = 1;
+                    }
+                    break;
+
+                  case 1: //-- Wait 100 * NoMQTT.Timeout
+                    if (EffectData->NoMQTT.SubCounter == 100) {
+                      EffectData->NoMQTT.SubCounter = 0;
+                      EffectData->NoMQTT.SubState   = 2;
+                    } else {
+                      EffectData->NoMQTT.SubCounter++;
+                    }
+                    break;
+
+                  case 2: //-- Fade Brightness to Max
+                    NextData->Brightness = MAX_BRIGHTNESS_VALUE;
+                    if (CurData->Brightness == NextData->Brightness) {
+                      EffectData->NoMQTT.SubState = 3;
+                    }
+                    break;
+
+                  case 3: //-- Wait 50 * NoMQTT.Timeout => Restart
+                    if (EffectData->NoMQTT.SubCounter == 50) {
+                      EffectData->NoMQTT.SubCounter = 0;  //-- Reset
+                      EffectData->NoMQTT.SubState   = 0;  //-- Reset
+                      EffectData->NoMQTT.Counter++;       //-- Count
+                    } else {
+                      EffectData->NoMQTT.SubCounter++;
+                    }
+                    break;
+
+                }
+
+              }
+            } else {
+              EffectData->NoMQTT.State = 2;
+            }
+            break;
+
+          case 2: //-- Never ending wait until connection is established again
+            NextData->Brightness = 0; //-- Power Off Strip
+            break;
+
+        }
+
+      }
+
+      //-- NoWiFi
+      if (!NetworkState.Wifi_Connected) {
+
+        //-- Check if CurMode is Idle or unequal NoWiFi if so reset
+        if (TransData->CurMode == Idle or TransData->CurMode != NoWiFi) {
+          //-- Reset
+          EffectData->NoWiFi.State      = 0;
+          EffectData->NoWiFi.SubState   = 0;
+          EffectData->NoWiFi.Counter    = 0;
+          EffectData->NoWiFi.SubCounter = 0;
+        }
+
+        //-- Set new Mode
+        TransData->NextMode = NoWiFi;
+
+        //-- Start Effect sequence
+        switch (EffectData->NoWiFi.State) {
+
+          case 0: //-- Set Effect Start Parameter and wait for the Transition to end
+            //-- Set Start Parameter
+            if (TransData->CurMode != NoHassIO and TransData->CurMode != NoMQTT) {
+              NextData->R           = 0;
+              NextData->G           = MAX_COLOR_VALUE;
+              NextData->B           = 0;
+              NextData->CW          = 0;
+              NextData->WW          = 0;
+              NextData->Brightness  = MAX_BRIGHTNESS_VALUE;
+            }
+            //-- Wait for Transition to finish
+            if (TransData->Finished and (TransData->CurMode == TransData->NextMode)) {
+              EffectData->NoWiFi.PrevMillis = millis();
+              EffectData->NoWiFi.State      = 1;
+            }
+            break;
+
+          case 1: //-- Run Effect
+            if (EffectData->NoWiFi.Counter <= 3) {
+              if ((millis() - EffectData->NoWiFi.PrevMillis) >= EffectData->NoWiFi.Timeout) {
+
+                switch (EffectData->NoWiFi.SubState) {
+
+                  case 0: //-- Fade Brightness to 0
+                    NextData->Brightness = 0;
+                    if (CurData->Brightness == NextData->Brightness) {
+                      EffectData->NoWiFi.SubState = 1;
+                    }
+                    break;
+
+                  case 1: //-- Wait 100 * NoWiFi.Timeout
+                    if (EffectData->NoWiFi.SubCounter == 100) {
+                      EffectData->NoWiFi.SubCounter = 0;
+                      EffectData->NoWiFi.SubState   = 2;
+                    } else {
+                      EffectData->NoWiFi.SubCounter++;
+                    }
+                    break;
+
+                  case 2: //-- Fade Brightness to Max
+                    NextData->Brightness = MAX_BRIGHTNESS_VALUE;
+                    if (CurData->Brightness == NextData->Brightness) {
+                      EffectData->NoWiFi.SubState = 3;
+                    }
+                    break;
+
+                  case 3: //-- Wait 50 * NoWiFi.Timeout => Restart
+                    if (EffectData->NoWiFi.SubCounter == 50) {
+                      EffectData->NoWiFi.SubCounter = 0;  //-- Reset
+                      EffectData->NoWiFi.SubState   = 0;  //-- Reset
+                      EffectData->NoWiFi.Counter++;       //-- Count
+                    } else {
+                      EffectData->NoWiFi.SubCounter++;
+                    }
+                    break;
+
+                }
+
+              }
+            } else {
+              EffectData->NoWiFi.State = 2;
+            }
+            break;
+
+          case 2: //-- Never ending wait until connection is established again
+            NextData->Brightness = 0; //-- Power Off Strip
+            break;
+
+        }
+
+      }
+
     }
 
   }
@@ -149,7 +433,10 @@ void StripControl(HardwareStripConfig *HardwareStrip, StripData *CurData, StripD
 }
 
 
-void ModeTransition(TransitionData *TransData, StripData *CurData, StripData *NextData, HardwareStripConfig *HardwareStrip) {
+void ModeTransition(TransitionData        * TransData,
+                    StripData             * CurData,
+                    StripData             * NextData,
+                    HardwareStripConfig   * HardwareStrip) {
 
   switch (TransData->State) {
 
@@ -205,7 +492,11 @@ void ModeTransition(TransitionData *TransData, StripData *CurData, StripData *Ne
 }
 
 
-void FadeStrip(HardwareStripConfig *HardwareStrip, StripData *CurData, StripData *NextData, FadeData *Fade, TransitionData *TransData) {
+void FadeStrip(HardwareStripConfig  * HardwareStrip,
+               StripData            * CurData,
+               StripData            * NextData,
+               FadeData             * Fade,
+               TransitionData       * TransData) {
 
   //---- Check Data for miss configuration
   //-- Fade Step Color
@@ -356,7 +647,7 @@ void FadeStrip(HardwareStripConfig *HardwareStrip, StripData *CurData, StripData
 }
 
 
-void ShowStrip(HardwareStripConfig *HardwareStrip, StripData *CurData) {
+void ShowStrip(HardwareStripConfig * HardwareStrip, StripData * CurData) {
 
   //-- Check if Strip has a ID and if the Id is valid
   if (HardwareStrip->StripID != 0xff and HardwareStrip->IdValid) {
