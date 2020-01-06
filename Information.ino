@@ -242,9 +242,11 @@ void printer() {
 #ifdef INFORMATION_MQTT_HASSIO
 
   if (
-    ParameterHassIO.SunBelowHorizon   != InfoParameterHassIO.SunBelowHorizon   or
-    ParameterHassIO.TimeHour          != InfoParameterHassIO.TimeHour          or
-    ParameterHassIO.TimeMin           != InfoParameterHassIO.TimeMin
+    ParameterHassIO.SunBelowHorizon   != InfoParameterHassIO.SunBelowHorizon    or
+    ParameterHassIO.TimeHour          != InfoParameterHassIO.TimeHour           or
+    ParameterHassIO.TimeMin           != InfoParameterHassIO.TimeMin            or
+    ParameterHassIO.MasterPresent     != InfoParameterHassIO.MasterPresent      or
+    ParameterHassIO.PcPowerdOn        != InfoParameterHassIO.PcPowerdOn
   ) {
     //-- Print Message
     Serial.println("/---------- HassIO Change ---------/");
@@ -254,6 +256,10 @@ void printer() {
     Serial.println(ParameterHassIO.TimeHour);
     Serial.print("   HassIO Time Min    : ");
     Serial.println(ParameterHassIO.TimeMin);
+    Serial.print("   HassIO Master Pres : ");
+    Serial.println(ParameterHassIO.MasterPresent);
+    Serial.print("   HassIO PC On       : ");
+    Serial.println(ParameterHassIO.PcPowerdOn);
     Serial.println("/----------------------------------/");
     Serial.println("");
 
@@ -261,6 +267,8 @@ void printer() {
     InfoParameterHassIO.SunBelowHorizon   = ParameterHassIO.SunBelowHorizon;
     InfoParameterHassIO.TimeHour          = ParameterHassIO.TimeHour;
     InfoParameterHassIO.TimeMin           = ParameterHassIO.TimeMin;
+    InfoParameterHassIO.MasterPresent     = ParameterHassIO.MasterPresent ;
+    InfoParameterHassIO.PcPowerdOn        = ParameterHassIO.PcPowerdOn ;
   }
 
 #endif

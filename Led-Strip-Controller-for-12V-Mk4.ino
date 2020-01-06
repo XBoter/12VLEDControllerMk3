@@ -31,32 +31,34 @@
 #define Programmer  "Nico Weidenfeller"
 #define Created     "16.12.2019"
 #define LastModifed "06.01.2020"
-#define Version     "0.1.1"
+#define Version     "0.1.2"
 /*
-   Information    :  General Rework of Code from the Mk3 Software. Changed Data send from Homeassistant to json. PIR motion detection is no Interupt based.
+   Information    :  General Rework of Code from the Mk3 Software. PIR motion detection is now Interupt based.
                      Fixed WakeUp and Sleep routines. Added Alarm, noWiFi, noHassIO and noMqtt Effect. Removed Remote ESP restart Option.
 
-   ToDo List      :  - Add Alarm Effect
-                     - Add noMQTT Effect
-                     - Add noWiFi Effect
-                     - Add noHassIO Effect
-                     - Struct for Settings
-                     - Fix WakeUp and Sleep routine
-                     - Fix Color fade between diffrent effects
-                     - Add json Data input over MQTT  (Not Used anymore)
-                     - Add pir Motion detection with interrupts
-                     - Add Structs for MotionDetection and others
-                     - Add Boundarie Check for json data
-                     - Add Option to turn of Motion detection Britghness Control
-                     - Add State Machine for MQTT and WiFi connection
+   ToDo List      :  - Fix WakeUp and Sleep routine
+                     - Add pir Motion detection with interrupts => Needes to be tested
                      - Add Homeassistant color and brightness value update when a effect is going on
                      - Rework Motion Detection setup
                      - Maybe add Warning when wrong mqtt commands (CW, WW or RGB) come in to inform the user of a wrong configuration
                      - Rework isRGB, isCW, isWW Check for MQTT, Network etc to reduce performance if nothing is connected or else
                      - Optimize MQTT for better performance with parameter for Strip 1 and 2 same for HassIO resend and Info tab
                      - Optimize Prio selection so not all CurModes need to be checked
+                     - Alarm Mode add CW in effect
                      - Check ToDo marks
+                     - Add Sync for Weekend mode so the effect doesnt desync
+                     - Rework Resend and change if finished resend in LED Sleep and Wakeup
+                     - Add PC Present motion stop
 
+   Finished List  :  - Add Alarm Effect
+                     - Add noMQTT Effect
+                     - Add noWiFi Effect
+                     - Add noHassIO Effect
+                     - Struct for Settings
+                     - Fix Color fade between diffrent effects
+                     - Add Structs for MotionDetection and others
+                     - Add Boundarie Check for json data
+                     - Add State Machine for MQTT and WiFi connection
 
    Bugs           :  -
 
@@ -76,6 +78,8 @@
                          Finished basic LED Control
                      - Version 0.1.1
                          Added Effects for NoHassIO, NoMQTT and NoWiFi. Fixed prio mode swap
+                     - Version 0.1.2
+                         Added Effects Alarm, Sleep, Wakeup and Weekend(not synced). Updatet ToDo list and added finished list. Added basic master present. 
 
 
 */
@@ -158,6 +162,8 @@ struct HassIOParameter {
   boolean SunBelowHorizon = false;
   uint8_t TimeHour        = 0;
   uint8_t TimeMin         = 0;
+  boolean MasterPresent   = false;
+  boolean PcPowerdOn      = false;
 } ParameterHassIO, InfoParameterHassIO;
 
 //-- Motion

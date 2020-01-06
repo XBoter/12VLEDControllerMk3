@@ -24,6 +24,17 @@ void StripControl(HardwareStripConfig   *HardwareStrip,
                   StripParameter        *Strip,
                   EffectDataList        *EffectData) {
 
+  //-- When Master is not present turn off strips
+  if (!ParameterHassIO.MasterPresent) {
+    NextData->Brightness = 0;
+    return;
+  }
+
+  //-- Commands for mqtt publish
+  char off_cmd[]    = "0";
+  char on_cmd[]     = "1";
+  char e_none_cmd[] = "None";
+
   //-- Mode Control
   /*
      Prio from bottom highest to lowest at the top.
@@ -63,7 +74,7 @@ void StripControl(HardwareStripConfig   *HardwareStrip,
       TransData->CurMode == Weekend
     ) {
 
-      if (Strip->Power) {
+      if (Strip->Power or Strip->Effect == e_Wakeup) {
         switch (Strip->Effect) {
 
           //-- None / Normal mode
@@ -93,38 +104,325 @@ void StripControl(HardwareStripConfig   *HardwareStrip,
 
           //-- Alarm Mode
           case e_Alarm:
+
+            //-- Check if CurMode is Idle or unequal Alarm if so reset
+            if (TransData->CurMode == Idle or TransData->CurMode != Alarm) {
+              //-- Reset
+              EffectData->Alarm.State      = 0;
+              EffectData->Alarm.SubState   = 0;
+              EffectData->Alarm.Counter    = 0;
+              EffectData->Alarm.SubCounter = 0;
+            }
+
             //-- Set new Mode
             TransData->NextMode = Alarm;
-            //-- Set Mode Parameter
-            NextData->R = MAX_COLOR_VALUE;
-            NextData->G = 0;
-            NextData->B = 0;
-            NextData->CW = 0;
-            NextData->WW = 0;
-            NextData->Brightness = MAX_BRIGHTNESS_VALUE;
+
+            //-- Start Effect sequence
+            switch (EffectData->Alarm.State) {
+
+              case 0: //-- Set Effect Start Parameter and wait for the Transition to end
+                //-- Set Start Parameter
+                NextData->R           = MAX_COLOR_VALUE;
+                NextData->G           = 0;
+                NextData->B           = 0;
+                NextData->CW          = 0;
+                NextData->WW          = 0;
+                NextData->Brightness  = MAX_BRIGHTNESS_VALUE;
+                //-- Wait for Transition to finish
+                if (TransData->Finished and (TransData->CurMode == TransData->NextMode)) {
+                  EffectData->Alarm.PrevMillis = millis();
+                  EffectData->Alarm.State      = 1;
+                }
+                break;
+
+              case 1: //-- Run Effect
+                if ((millis() - EffectData->Alarm.PrevMillis) >= EffectData->Alarm.Timeout) {
+
+                  switch (EffectData->Alarm.SubState) {
+
+                    case 0: //-- Fade Brightness to 0
+                      NextData->Brightness = 0;
+                      if (CurData->Brightness == NextData->Brightness) {
+                        EffectData->Alarm.SubState = 1;
+                      }
+                      break;
+
+                    case 1: //-- Wait 100 * Alarm.Timeout
+                      if (EffectData->Alarm.SubCounter == 100) {
+                        EffectData->Alarm.SubCounter = 0;
+                        EffectData->Alarm.SubState   = 2;
+                      } else {
+                        EffectData->Alarm.SubCounter++;
+                      }
+                      break;
+
+                    case 2: //-- Fade Brightness to Max
+                      NextData->Brightness = MAX_BRIGHTNESS_VALUE;
+                      if (CurData->Brightness == NextData->Brightness) {
+                        EffectData->Alarm.SubState = 3;
+                      }
+                      break;
+
+                    case 3: //-- Wait 50 * Alarm.Timeout => Restart
+                      if (EffectData->Alarm.SubCounter == 50) {
+                        EffectData->Alarm.SubCounter = 0;  //-- Reset
+                        EffectData->Alarm.SubState   = 0;  //-- Reset
+                        EffectData->Alarm.Counter    = 0;  //-- Reset
+                      } else {
+                        EffectData->Alarm.SubCounter++;
+                      }
+                      break;
+
+                  }
+
+                }
+
+            }
+
             break;
 
           //-- WakeUp Mode
           case e_Wakeup:
+
+            //-- Check if CurMode is Idle or unequal Alarm if so reset
+            if (TransData->CurMode == Idle or TransData->CurMode != Wakeup) {
+              //-- Reset
+              EffectData->Wakeup.State      = 0;
+              EffectData->Wakeup.SubState   = 0;
+              EffectData->Wakeup.Counter    = 0;
+              EffectData->Wakeup.SubCounter = 0;
+            }
+
             //-- Set new Mode
             TransData->NextMode = Wakeup;
-            //-- Set Mode Parameter
 
+            //-- Start Effect sequence
+            switch (EffectData->Wakeup.State) {
+
+              case 0: //-- Set Effect Start Parameter and wait for the Transition to end
+                //-- Set Start Parameter
+                NextData->R           = MAX_COLOR_VALUE;
+                NextData->G           = int(MAX_COLOR_VALUE / 4);
+                NextData->B           = 0;
+                NextData->CW          = 0;
+                NextData->WW          = 0;
+                CurData->Brightness   = 0;
+                //-- Wait for Transition to finish
+                if (TransData->Finished and (TransData->CurMode == TransData->NextMode)) {
+                  EffectData->Wakeup.PrevMillis = millis();
+                  EffectData->Wakeup.State      = 1;
+                }
+                break;
+
+              case 1: //-- Run Effect
+
+                if ((millis() - EffectData->Wakeup.PrevMillis) >= EffectData->Wakeup.Timeout * 50) {
+
+                  EffectData->Wakeup.PrevMillis = millis();
+
+                  switch (EffectData->Wakeup.SubState) {
+
+                    case 0: //-- Fade Brightness to Max
+                      if (CurData->Brightness == MAX_BRIGHTNESS_VALUE) {
+                        EffectData->Wakeup.SubState++;
+                      } else {
+                        if (NextData->Brightness < MAX_BRIGHTNESS_VALUE) {
+                          NextData->Brightness += 1;
+                        }
+                      }
+                      break;
+
+                    case 1: //-- Turn on Strip
+                      switch (HardwareStrip->StripID) {
+
+                        case 1:
+                          mqttClient.publish(mqtt_strip1_power_command, on_cmd);
+                          mqttClient.publish(mqtt_strip1_effect_command, e_none_cmd);
+                          break;
+
+                        case 2:
+                          mqttClient.publish(mqtt_strip2_power_command, on_cmd );
+                          mqttClient.publish(mqtt_strip2_effect_command, e_none_cmd);
+                          break;
+                      }
+                      EffectData->Wakeup.SubState++;
+                      break;
+
+                    case 2: //-- Dummy Wait
+
+                      break;
+
+                  }
+
+                }
+
+            }
             break;
 
           //-- Sleep Mode
           case e_Sleep:
+
+            //-- Check if CurMode is Idle or unequal Alarm if so reset
+            if (TransData->CurMode == Idle or TransData->CurMode != Sleep) {
+              //-- Reset
+              EffectData->Sleep.State      = 0;
+              EffectData->Sleep.SubState   = 0;
+              EffectData->Sleep.Counter    = 0;
+              EffectData->Sleep.SubCounter = 0;
+            }
+
             //-- Set new Mode
             TransData->NextMode = Sleep;
-            //-- Set Mode Parameter
 
+            //-- Start Effect sequence
+            switch (EffectData->Sleep.State) {
+
+              case 0: //-- Set Effect Start Parameter and wait for the Transition to end
+                //-- Set Start Parameter
+                NextData->R           = MAX_COLOR_VALUE;
+                NextData->G           = int(MAX_COLOR_VALUE / 4);
+                NextData->B           = 0;
+                NextData->CW          = 0;
+                NextData->WW          = 0;
+                //-- Wait for Transition to finish
+                if (TransData->Finished and (TransData->CurMode == TransData->NextMode)) {
+                  EffectData->Sleep.PrevMillis = millis();
+                  EffectData->Sleep.State      = 1;
+                }
+                break;
+
+              case 1: //-- Run Effect
+
+                if ((millis() - EffectData->Sleep.PrevMillis) >= EffectData->Sleep.Timeout * 20) {
+
+                  EffectData->Sleep.PrevMillis = millis();
+
+                  switch (EffectData->Sleep.SubState) {
+
+                    case 0: //-- Fade Brightness to 0
+                      if (CurData->Brightness == 0) {
+                        EffectData->Sleep.SubState++;
+                      } else {
+                        if (NextData->Brightness > 0) {
+                          NextData->Brightness -= 1;
+                        }
+                      }
+                      break;
+
+                    case 1: //-- Turn off Strip
+                      switch (HardwareStrip->StripID) {
+
+                        case 1:
+                          mqttClient.publish(mqtt_strip1_power_command, off_cmd);
+                          mqttClient.publish(mqtt_strip1_effect_command, e_none_cmd);
+                          break;
+
+                        case 2:
+                          mqttClient.publish(mqtt_strip2_power_command, off_cmd );
+                          mqttClient.publish(mqtt_strip2_effect_command, e_none_cmd);
+                          break;
+                      }
+                      EffectData->Sleep.SubState++;
+                      break;
+
+                    case 2: //-- Dummy Wait
+
+                      break;
+
+                  }
+
+                }
+
+            }
             break;
 
           //-- Weekend Mode
           case e_Weekend:
+
+            //-- Check if CurMode is Idle or unequal Alarm if so reset
+            if (TransData->CurMode == Idle or TransData->CurMode != Weekend) {
+              //-- Reset
+              EffectData->Weekend.State      = 0;
+              EffectData->Weekend.SubState   = 0;
+              EffectData->Weekend.Counter    = 0;
+              EffectData->Weekend.SubCounter = 0;
+            }
+
             //-- Set new Mode
             TransData->NextMode = Weekend;
-            //-- Set Mode Parameter
+
+            //-- Start Effect sequence
+            switch (EffectData->Weekend.State) {
+
+              case 0: //-- Set Effect Start Parameter and wait for the Transition to end
+                //-- Set Start Parameter
+                NextData->R           = MAX_COLOR_VALUE;
+                NextData->G           = MAX_COLOR_VALUE;
+                NextData->B           = 0;
+                NextData->CW          = 0;
+                NextData->WW          = 0;
+                NextData->Brightness  = MAX_BRIGHTNESS_VALUE;
+                //-- Wait for Transition to finish
+                if (TransData->Finished and (TransData->CurMode == TransData->NextMode)) {
+                  EffectData->Weekend.PrevMillis = millis();
+                  EffectData->Weekend.State      = 1;
+                }
+                break;
+
+              case 1: //-- Run Effect
+                if ((millis() - EffectData->Weekend.PrevMillis) >= (EffectData->Weekend.Timeout * 10)) {
+
+                  EffectData->Weekend.PrevMillis = millis();
+
+                  switch (EffectData->Weekend.SubState) {
+
+                    case 0:
+                      NextData->R -= 5;
+                      if (NextData->R == 0) {
+                        EffectData->Weekend.SubState++;
+                      }
+                      break;
+
+                    case 1:
+                      NextData->B += 5;
+                      if (NextData->B == 255) {
+                        EffectData->Weekend.SubState++;
+                      }
+                      break;
+
+                    case 2:
+                      NextData->G -= 5;
+                      if (NextData->G == 0) {
+                        EffectData->Weekend.SubState++;
+                      }
+                      break;
+
+                    case 3:
+                      NextData->R += 5;
+                      if (NextData->R == 255) {
+                        EffectData->Weekend.SubState++;
+                      }
+                      break;
+
+                    case 4:
+                      NextData->B -= 5;
+                      if (NextData->B == 0) {
+                        EffectData->Weekend.SubState++;
+                      }
+                      break;
+
+                    case 5:
+                      NextData->G += 5;
+                      if (NextData->G == 255) {
+                        EffectData->Weekend.SubState = 0;
+                      }
+                      break;
+
+                  }
+
+                }
+
+            }
 
             break;
 

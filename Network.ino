@@ -90,11 +90,13 @@ void mqtt() {
 
         //*** Global ***//
         //-- HassIO
-        mqttClient.subscribe(mqtt_HassIO_Heartbeat_command);    // HassIO sends a Heartbeat every second
-        mqttClient.subscribe(mqtt_HassIO_time_command);         // HassIO sends a time update every 30 sec
-        mqttClient.subscribe(mqtt_HassIO_sun_command);          // HassIO sends a 1 or 0 when the sun is rising or falling
-        mqttClient.subscribe(mqtt_global_good_night_command);          // HassIO sends a 1 or 0 when the sun is rising or falling
-        mqttClient.subscribe(mqtt_global_good_morning_command);          // HassIO sends a 1 or 0 when the sun is rising or falling
+        mqttClient.subscribe(mqtt_HassIO_Heartbeat_command);        // HassIO sends a Heartbeat every second
+        mqttClient.subscribe(mqtt_HassIO_time_command);             // HassIO sends a time update every 30 sec
+        mqttClient.subscribe(mqtt_HassIO_sun_command);              // HassIO sends a 1 or 0 when the sun is rising or falling
+        mqttClient.subscribe(mqtt_HassIO_master_present_command);   // HassIO sends a 1 or 0 when the master is present or not
+#ifdef CONTROLLER_MOTION_DISABLE_WHEN_PC_ON
+        mqttClient.subscribe(mqtt_HassIO_pc_present_command);       // HassIO sends a 1 or 0 when the pc is on or off
+#endif
 
         //*** General ***//
         //-- Motion Detection
@@ -179,7 +181,7 @@ void hassIO() {
   }
 
   //-- If HassIO is avaiable again send data
-  if (SendMqttParameter and !HassIOTimeout) {
+  if (SendMqttParameter) {
     SendMqttParameter = false;
     char tempValueHolder[32];
 

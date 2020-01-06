@@ -31,15 +31,27 @@ void callback(char* topic, byte * payload, int length) {
     ParameterHassIO.SunBelowHorizon = atoi(message);
   }
 
-  //---- Global Good Night
-  if (String(mqtt_global_good_night_command).equals(topic)) {
-
+  //---- HassIO Master Present
+  if (String(mqtt_HassIO_master_present_command).equals(topic)) {
+    String temp_message = strtok(message, "\0");
+    if (temp_message.equals("home")) {
+      ParameterHassIO.MasterPresent = true;
+    } else {
+      ParameterHassIO.MasterPresent = false;
+    }
   }
 
-  //---- Global Good Morning
-  if (String(mqtt_global_good_morning_command).equals(topic)) {
-
+#ifdef CONTROLLER_MOTION_DISABLE_WHEN_PC_ON
+  //---- HassIO PC Present
+  if (String(mqtt_HassIO_pc_present_command).equals(topic)) {
+    String temp_message = strtok(message, "\0");
+    if (temp_message.equals("on")) {
+      ParameterHassIO.PcPowerdOn = true;
+    } else {
+      ParameterHassIO.PcPowerdOn = false;
+    }
   }
+#endif
 
   //######################################## General ########################################//
   //---- Motion Detection Power
@@ -183,7 +195,7 @@ void callback(char* topic, byte * payload, int length) {
   //---- LED Strip 1 Effect
   if (String(mqtt_strip1_effect_command).equals(topic)) {
     mqttClient.publish(mqtt_strip1_effect_state, message);
-    strcpy(LastEffectStrip2Holder, message);
+    strcpy(LastEffectStrip1Holder, message);
     String effect = strtok(message, "\0");
     if (effect.equals("None")) {
       ParameterLEDStrip1.Effect = e_None;
