@@ -181,7 +181,7 @@ void hassIO() {
   }
 
   //-- If HassIO is avaiable again send data
-  if (SendMqttParameter) {
+  if (SendMqttParameter and !HassIOTimeout) {
     SendMqttParameter = false;
     char tempValueHolder[32];
 

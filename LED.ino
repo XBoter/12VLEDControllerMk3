@@ -57,6 +57,68 @@ void StripControl(HardwareStripConfig   *HardwareStrip,
       TransData->CurMode == Motion
     ) {
 
+      //-- Check if CurMode is Idle or unequal Alarm if so reset
+      if (TransData->CurMode == Idle or TransData->CurMode != Motion) {
+        //-- Reset
+        ResetEffectData(&(EffectData->Motion));
+        MotionData.MotionEffectActive = false;
+      }
+
+      //-- Check if Motion has been deteced or if the effect is still going on. Only works when motion detection is enabled
+      if (
+        (
+          MotionData.MotionDeteced      or
+          MotionData.MotionEffectActive
+        )
+        and ParameterMotion.Power
+        and ParameterHassIO.SunBelowHorizon
+#ifdef CONTROLLER_MOTION_DISABLE_WHEN_PC_ON
+        and !ParameterHassIO.PcPowerdOn
+#endif
+      ) {
+
+        //-- Set new Mode
+        TransData->NextMode = Motion;
+
+        //-- Start Effect sequence
+        switch (EffectData->Motion.State) {
+
+          case 0: //-- Set Effect Start Parameter and wait for the Transition to end
+            //-- Set Start Parameter
+            NextData->R           = ParameterMotion.Red;
+            NextData->G           = ParameterMotion.Green;
+            NextData->B           = ParameterMotion.Blue;
+            NextData->CW          = 0;
+            NextData->WW          = 0;
+            NextData->Brightness  = getTimeBasedBrightness();
+            //-- Wait for Transition to finish
+            if (TransData->Finished and (TransData->CurMode == TransData->NextMode)) {
+              EffectData->Motion.PrevMillis = millis();
+              EffectData->Motion.State      = 1;
+            }
+            //-- Set Effect activ flag
+            MotionData.MotionEffectActive = true;
+            break;
+
+          case 1: //-- Run Effect
+
+            //-- Check if Motion is retriggert
+            if (MotionData.MotionDeteced) {
+              EffectData->Motion.PrevMillis = millis(); //-- Reset Timer
+            }
+
+            //-- Timer waits to run out and stop motion effect
+            if ((millis() - EffectData->Motion.PrevMillis) >= (ParameterMotion.Timeout * 1000)) {
+              MotionData.MotionEffectActive = false;
+            }
+            break;
+
+        }
+
+      } else {
+        NextData->Brightness = 0;  //-- Power Off
+      }
+
     }
 
     //---- Effects
@@ -79,23 +141,40 @@ void StripControl(HardwareStripConfig   *HardwareStrip,
 
           //-- None / Normal mode
           case e_None:
+          case e_Only_RGB:
+          case e_Only_CW:
+          case e_Only_WW:
+          case e_Only_RGBCW:
+          case e_Only_RGBWW:
+
             //-- Set new Mode
             TransData->NextMode = Normal;
             //-- Set Mode Parameter
             //-- Check if RGB is supported
-            if (HardwareStrip->isRGB) {
+            if (HardwareStrip->isRGB and (Strip->Effect == e_None or Strip->Effect == e_Only_RGB or Strip->Effect == e_Only_RGBCW or Strip->Effect == e_Only_RGBWW)) {
               NextData->R = Strip->Red;
               NextData->G = Strip->Green;
               NextData->B = Strip->Blue;
+            } else {
+              NextData->R  = 0;
+              NextData->G  = 0;
+              NextData->B  = 0;
             }
+
             //-- Check if CW is supported
-            if (HardwareStrip->isCW) {
+            if (HardwareStrip->isCW and (Strip->Effect == e_None or Strip->Effect == e_Only_CW or Strip->Effect == e_Only_RGBCW)) {
               NextData->CW = Strip->ColdWhite;
+            } else {
+              NextData->CW  = 0;
             }
+
             //-- Check if WW is supported
-            if (HardwareStrip->isWW) {
-              NextData->CW = Strip->WarmWhite;
+            if (HardwareStrip->isWW and (Strip->Effect == e_None or Strip->Effect == e_Only_WW or Strip->Effect == e_Only_RGBWW)) {
+              NextData->WW = Strip->WarmWhite;
+            } else {
+              NextData->WW  = 0;
             }
+
             //-- Check if Brightness is used
             if (HardwareStrip->isRGB or HardwareStrip->isCW or HardwareStrip->isWW) {
               NextData->Brightness = Strip->Brightness;
@@ -108,10 +187,7 @@ void StripControl(HardwareStripConfig   *HardwareStrip,
             //-- Check if CurMode is Idle or unequal Alarm if so reset
             if (TransData->CurMode == Idle or TransData->CurMode != Alarm) {
               //-- Reset
-              EffectData->Alarm.State      = 0;
-              EffectData->Alarm.SubState   = 0;
-              EffectData->Alarm.Counter    = 0;
-              EffectData->Alarm.SubCounter = 0;
+              ResetEffectData(&(EffectData->Alarm));
             }
 
             //-- Set new Mode
@@ -187,10 +263,7 @@ void StripControl(HardwareStripConfig   *HardwareStrip,
             //-- Check if CurMode is Idle or unequal Alarm if so reset
             if (TransData->CurMode == Idle or TransData->CurMode != Wakeup) {
               //-- Reset
-              EffectData->Wakeup.State      = 0;
-              EffectData->Wakeup.SubState   = 0;
-              EffectData->Wakeup.Counter    = 0;
-              EffectData->Wakeup.SubCounter = 0;
+              ResetEffectData(&(EffectData->Wakeup));
             }
 
             //-- Set new Mode
@@ -265,10 +338,7 @@ void StripControl(HardwareStripConfig   *HardwareStrip,
             //-- Check if CurMode is Idle or unequal Alarm if so reset
             if (TransData->CurMode == Idle or TransData->CurMode != Sleep) {
               //-- Reset
-              EffectData->Sleep.State      = 0;
-              EffectData->Sleep.SubState   = 0;
-              EffectData->Sleep.Counter    = 0;
-              EffectData->Sleep.SubCounter = 0;
+              ResetEffectData(&(EffectData->Sleep));
             }
 
             //-- Set new Mode
@@ -342,10 +412,7 @@ void StripControl(HardwareStripConfig   *HardwareStrip,
             //-- Check if CurMode is Idle or unequal Alarm if so reset
             if (TransData->CurMode == Idle or TransData->CurMode != Weekend) {
               //-- Reset
-              EffectData->Weekend.State      = 0;
-              EffectData->Weekend.SubState   = 0;
-              EffectData->Weekend.Counter    = 0;
-              EffectData->Weekend.SubCounter = 0;
+              ResetEffectData(&(EffectData->Weekend));
             }
 
             //-- Set new Mode
@@ -428,7 +495,9 @@ void StripControl(HardwareStripConfig   *HardwareStrip,
 
         }
       } else {
-        NextData->Brightness = 0;  //-- Power Off
+        if (TransData->CurMode != Motion) {
+          NextData->Brightness = 0;  //-- Power Off
+        }
       }
     }
 
@@ -457,10 +526,7 @@ void StripControl(HardwareStripConfig   *HardwareStrip,
         //-- Check if CurMode is Idle or unequal NoHassIO if so reset
         if (TransData->CurMode == Idle or TransData->CurMode != NoHassIO) {
           //-- Reset
-          EffectData->NoHassIO.State      = 0;
-          EffectData->NoHassIO.SubState   = 0;
-          EffectData->NoHassIO.Counter    = 0;
-          EffectData->NoHassIO.SubCounter = 0;
+          ResetEffectData(&(EffectData->NoHassIO));
         }
 
         //-- Set new Mode
@@ -547,10 +613,7 @@ void StripControl(HardwareStripConfig   *HardwareStrip,
         //-- Check if CurMode is Idle or unequal NoMQTT if so reset
         if (TransData->CurMode == Idle or TransData->CurMode != NoMQTT) {
           //-- Reset
-          EffectData->NoMQTT.State      = 0;
-          EffectData->NoMQTT.SubState   = 0;
-          EffectData->NoMQTT.Counter    = 0;
-          EffectData->NoMQTT.SubCounter = 0;
+          ResetEffectData(&(EffectData->NoMQTT));
         }
 
         //-- Set new Mode
@@ -637,10 +700,7 @@ void StripControl(HardwareStripConfig   *HardwareStrip,
         //-- Check if CurMode is Idle or unequal NoWiFi if so reset
         if (TransData->CurMode == Idle or TransData->CurMode != NoWiFi) {
           //-- Reset
-          EffectData->NoWiFi.State      = 0;
-          EffectData->NoWiFi.SubState   = 0;
-          EffectData->NoWiFi.Counter    = 0;
-          EffectData->NoWiFi.SubCounter = 0;
+          ResetEffectData(&(EffectData->NoWiFi));
         }
 
         //-- Set new Mode
@@ -968,5 +1028,69 @@ void ShowStrip(HardwareStripConfig * HardwareStrip, StripData * CurData) {
     }
 
   }
+
+}
+
+
+void ResetEffectData(BasicEffect *BasicEffectData) {
+
+  BasicEffectData->State      = 0;
+  BasicEffectData->SubState   = 0;
+  BasicEffectData->Counter    = 0;
+  BasicEffectData->SubCounter = 0;
+
+}
+
+uint8_t getTimeBasedBrightness() {
+
+  uint8_t temp = 0;
+
+  switch (ParameterHassIO.TimeHour) {
+
+    //-- Night
+    case 22:    temp = 224;
+      break;
+    case 23:    temp = 192;
+      break;
+    case 0:     temp = 160;
+      break;
+    case 1:     temp = 128;
+      break;
+    case 2:     temp = 96;
+      break;
+    case 3:     temp = 62;
+      break;
+    case 4:     temp = 96;
+      break;
+    case 5:     temp = 128;
+      break;
+    case 6:     temp = 160;
+      break;
+    case 7:     temp = 192;
+      break;
+    case 8:     temp = 224;
+      break;
+
+    //-- Day max Brightness
+    case 9:
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+    case 14:
+    case 15:
+    case 16:
+    case 17:
+    case 18:
+    case 19:
+    case 20:
+    case 21:    temp = 255;
+      break;
+
+    default:    temp = 128;
+      break;
+  }
+
+  return temp;
 
 }

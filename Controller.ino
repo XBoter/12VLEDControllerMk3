@@ -103,7 +103,7 @@ void SetupController() {
     }
     if (CONTROLLER_NUM_MOTION_SENSORS == 2) {
       pinMode(PIN_MOTION_SENSOR_2, INPUT);
-      attachInterrupt(digitalPinToInterrupt(PIN_MOTION_SENSOR_1), StateMotionDetectedSensor2, CHANGE);
+      attachInterrupt(digitalPinToInterrupt(PIN_MOTION_SENSOR_2), StateMotionDetectedSensor2, CHANGE);
     }
   }
 #endif
@@ -144,6 +144,9 @@ void LoopController() {
 #ifdef INFORMATION_MASTER_PRINT
   printer();
 #endif
+
+  //-- Motion --//
+  motion();
 
   //-- LED --//
   leds();

@@ -12,11 +12,15 @@
 //++++ Defines for MQTT Secrets +++//
 #define WZ_MQTT_SETTINGS
 //#define HD_SMQTT_SETTINGS
+//---- Controller Defines
 #define DEV_CONTROLLER_MQTT_PATHS
+//#define DESK_CONTROLLER_MQTT_PATHS
+//#define BED_CONTROLLER_MQTT_PATHS
+//#define SHELF_CONTROLLER_MQTT_PATHS
 #include <secrets_mqtt.h>
 
 //+++ Defines for Information Print +++//
-#define INFORMATION_MASTER_PRINT
+//#define INFORMATION_MASTER_PRINT
 
 #define INFORMATION_WIFI_STATE
 #define INFORMATION_MQTT_STATE
@@ -25,30 +29,24 @@
 #define INFORMATION_MQTT_MOTION_DETECTION
 #define INFORMATION_MQTT_HASSIO
 #define INFORMATION_LIGHT_STATE
+#define INFORMATION_PIR_SENSOR
 
 //-------------------- Basic Information --------------------//
 #define Name        "LED-Strip-Controller-for-12V-Mk-4"
 #define Programmer  "Nico Weidenfeller"
 #define Created     "16.12.2019"
-#define LastModifed "06.01.2020"
-#define Version     "0.1.2"
+#define LastModifed "07.01.2020"
+#define Version     "0.1.3"
 /*
    Information    :  General Rework of Code from the Mk3 Software. PIR motion detection is now Interupt based.
                      Fixed WakeUp and Sleep routines. Added Alarm, noWiFi, noHassIO and noMqtt Effect. Removed Remote ESP restart Option.
 
-   ToDo List      :  - Fix WakeUp and Sleep routine
-                     - Add pir Motion detection with interrupts => Needes to be tested
-                     - Add Homeassistant color and brightness value update when a effect is going on
-                     - Rework Motion Detection setup
-                     - Maybe add Warning when wrong mqtt commands (CW, WW or RGB) come in to inform the user of a wrong configuration
+   ToDo List      :  - Maybe add Warning when wrong mqtt commands (CW, WW or RGB) come in to inform the user of a wrong configuration
                      - Rework isRGB, isCW, isWW Check for MQTT, Network etc to reduce performance if nothing is connected or else
                      - Optimize MQTT for better performance with parameter for Strip 1 and 2 same for HassIO resend and Info tab
-                     - Optimize Prio selection so not all CurModes need to be checked
-                     - Alarm Mode add CW in effect
                      - Check ToDo marks
                      - Add Sync for Weekend mode so the effect doesnt desync
                      - Rework Resend and change if finished resend in LED Sleep and Wakeup
-                     - Add PC Present motion stop
 
    Finished List  :  - Add Alarm Effect
                      - Add noMQTT Effect
@@ -59,6 +57,10 @@
                      - Add Structs for MotionDetection and others
                      - Add Boundarie Check for json data
                      - Add State Machine for MQTT and WiFi connection
+                     - Add PC Present motion stop
+                     - Rework Motion Detection setup
+                     - Add pir Motion detection with interrupts => Needes to be tested
+                     - Fix WakeUp and Sleep routine
 
    Bugs           :  -
 
@@ -79,7 +81,9 @@
                      - Version 0.1.1
                          Added Effects for NoHassIO, NoMQTT and NoWiFi. Fixed prio mode swap
                      - Version 0.1.2
-                         Added Effects Alarm, Sleep, Wakeup and Weekend(not synced). Updatet ToDo list and added finished list. Added basic master present. 
+                         Added Effects Alarm, Sleep, Wakeup and Weekend(not synced). Updatet ToDo list and added finished list. Added basic master present.
+                     - Version 0.1.3
+                         Fixed some bugs. Added motion detection effect. Added Only_RGB/CW/WW/RGBCW/RGBWW Effect/Mode. Fixed perma resend bug when HassIo is not aviable.
 
 
 */
@@ -97,7 +101,7 @@
 
 //---- LED STRIP 1 CW PIN DEFINE
 #ifdef STRIP_1_CW
-#define PIN_STRIP_1_COLD_WHITE NULL   //ToDo
+#define PIN_STRIP_1_COLD_WHITE D4   //ToDo
 #endif
 
 //---- LED STRIP 1 WW PIN DEFINE
@@ -114,7 +118,7 @@
 
 //---- LED STRIP 2 CW PIN DEFINE
 #ifdef STRIP_2_CW
-#define PIN_STRIP_2_COLD_WHITE NULL   //ToDo
+#define PIN_STRIP_2_COLD_WHITE D8   //ToDo
 #endif
 
 //---- LED STRIP 2 WW PIN DEFINE
@@ -180,7 +184,12 @@ enum EffectType {
   e_Alarm,
   e_Wakeup,
   e_Sleep,
-  e_Weekend
+  e_Weekend,
+  e_Only_RGB,
+  e_Only_CW,
+  e_Only_WW,
+  e_Only_RGBCW,
+  e_Only_RGBWW
 };
 
 //-- LED
@@ -198,10 +207,10 @@ struct StripParameter {
 //-- Motion Detection
 struct MotionDetectionParameter {
   boolean Power       = false;     // Power value on or off
-  uint8_t Red         = 0;         // Color value from red
-  uint8_t Green       = 0;         // Color value from green
+  uint8_t Red         = 255;       // Color value from red
+  uint8_t Green       = 64;        // Color value from green
   uint8_t Blue        = 0;         // Color value from blue
-  uint16_t Timeout    = 0;         // Motion Timeout value
+  uint16_t Timeout    = 20;        // Motion Timeout value (Sec)
 } ParameterMotion, InfoParameterMotion;
 
 
@@ -341,7 +350,7 @@ struct EffectDataList {
   BasicEffect NoWiFi;
 
   //-- Prio 2
-  BasicEffect None;
+  BasicEffect None;   //-- Includes mode Only_RGB/CW/WW/RGBCW/RGBWW
   BasicEffect Alarm;
   BasicEffect Wakeup;
   BasicEffect Sleep;
@@ -353,17 +362,21 @@ struct EffectDataList {
 } EffectDataListStrip1, EffectDataListStrip2;
 
 
+struct MotionEffectData {
+
+  boolean MotionDeteced       = false; //-- True when Motion is deteced by a Sensor
+  boolean MotionEffectActive  = false;
+
+} MotionData;
 
 //*************************************************************************************************//
 //---------------------------------------------- Motion -------------------------------------------//
 //*************************************************************************************************//
-struct MotionData {
-  volatile boolean MotionDeteced = false;
-  double Brightness = 0;
-  double Red        = 0;
-  double Green      = 0;
-  double Blue       = 0;
-} PIRSensor1, PIRSensor2;
+struct PIRSensorData {
+
+  volatile boolean MotionDeteced = false; //-- Gets True when a Sensor detects Motion
+
+} PIRSensor1, PIRSensor2, InfoPIRSensor1, InfoPIRSensor2;
 
 
 //*************************************************************************************************//
@@ -406,7 +419,6 @@ unsigned long TimeOutNoWiFiConnection              = 5000;    // 5.00 Seconds
 unsigned long TimeOutNoMQTTConnection              = 5000;    // 5.00 Seconds
 unsigned long TimeOutNoHassIOConnection            = 10000;   // 10.0 Seconds
 unsigned long TimeOutESPHeartBeat                  = 300000;  // 5.00 Minutes
-
 /*
   unsigned long CurMillisExample = millis();
   if (CurMillisExample - PrevMillisExample >= TimeOutExample) {

@@ -322,4 +322,27 @@ void printer() {
 
 #endif
 
+#ifdef INFORMATION_PIR_SENSOR
+
+  if (
+    PIRSensor1.MotionDeteced  != InfoPIRSensor1.MotionDeteced    or
+    PIRSensor2.MotionDeteced  != InfoPIRSensor2.MotionDeteced
+
+  ) {
+    //-- Print Message
+    Serial.println("/---------- Motion Change ---------/");
+    Serial.print("   Motion Sensor 1    : ");
+    Serial.println(PIRSensor1.MotionDeteced);
+    Serial.print("   Motion Sensor 2    : ");
+    Serial.println(PIRSensor2.MotionDeteced);
+    Serial.println("/----------------------------------/");
+    Serial.println("");
+
+    //-- Update InfoStruct
+    InfoPIRSensor1.MotionDeteced  = PIRSensor1.MotionDeteced;
+    InfoPIRSensor2.MotionDeteced  = PIRSensor2.MotionDeteced;
+  }
+
+#endif
+
 }

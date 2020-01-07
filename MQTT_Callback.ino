@@ -84,11 +84,14 @@ void callback(char* topic, byte * payload, int length) {
       return;
     }
     ParameterMotion.Blue = blue;
+
   }
 
   //---- Motion Detection Timeout
   if (String(mqtt_motion_detection_timeout_command).equals(topic)) {
-    ParameterMotion.Timeout = atoi(message);
+    if (atoi(message) != 0) { //-- If 0 use standart value
+      ParameterMotion.Timeout = atoi(message);
+    }
   }
 
 
@@ -199,6 +202,16 @@ void callback(char* topic, byte * payload, int length) {
     String effect = strtok(message, "\0");
     if (effect.equals("None")) {
       ParameterLEDStrip1.Effect = e_None;
+    } else if (effect.equals("Only_RGB")) {
+      ParameterLEDStrip1.Effect = e_Only_RGB;
+    } else if (effect.equals("Only_CW")) {
+      ParameterLEDStrip1.Effect = e_Only_CW;
+    } else if (effect.equals("Only_WW")) {
+      ParameterLEDStrip1.Effect = e_Only_WW;
+    } else if (effect.equals("Only_RGBCW")) {
+      ParameterLEDStrip1.Effect = e_Only_RGBCW;
+    }  else if (effect.equals("Only_RGBWW")) {
+      ParameterLEDStrip1.Effect = e_Only_RGBWW;
     } else if (effect.equals("Alarm")) {
       ParameterLEDStrip1.Effect = e_Alarm;
     } else if (effect.equals("Wakeup")) {
@@ -318,6 +331,16 @@ void callback(char* topic, byte * payload, int length) {
     String effect = strtok(message, "\0");
     if (effect.equals("None")) {
       ParameterLEDStrip2.Effect = e_None;
+    } else if (effect.equals("Only_RGB")) {
+      ParameterLEDStrip2.Effect = e_Only_RGB;
+    } else if (effect.equals("Only_CW")) {
+      ParameterLEDStrip2.Effect = e_Only_CW;
+    } else if (effect.equals("Only_WW")) {
+      ParameterLEDStrip2.Effect = e_Only_WW;
+    } else if (effect.equals("Only_RGBCW")) {
+      ParameterLEDStrip2.Effect = e_Only_RGBCW;
+    } else if (effect.equals("Only_RGBWW")) {
+      ParameterLEDStrip2.Effect = e_Only_RGBWW;
     } else if (effect.equals("Alarm")) {
       ParameterLEDStrip2.Effect = e_Alarm;
     } else if (effect.equals("Wakeup")) {
