@@ -13,30 +13,33 @@
 #define WZ_MQTT_SETTINGS
 //#define HD_SMQTT_SETTINGS
 //---- Controller Defines
-#define DEV_CONTROLLER_MQTT_PATHS
-//#define DESK_CONTROLLER_MQTT_PATHS
+//#define DEV_CONTROLLER_MQTT_PATHS
+#define DESK_CONTROLLER_MQTT_PATHS
 //#define BED_CONTROLLER_MQTT_PATHS
 //#define SHELF_CONTROLLER_MQTT_PATHS
+//#define SHELF_DOWN_CONTROLLER_MQTT_PATHS
+//#define TV_CONTROLLER_MQTT_PATHS
+//#define KITCHEN_CONTROLLER_MQTT_PATHS
 #include <secrets_mqtt.h>
 
 //+++ Defines for Information Print +++//
 //#define INFORMATION_MASTER_PRINT
 
-#define INFORMATION_WIFI_STATE
-#define INFORMATION_MQTT_STATE
-#define INFORMATION_HASSIO_STATE
-#define INFORMATION_MQTT_LED
-#define INFORMATION_MQTT_MOTION_DETECTION
-#define INFORMATION_MQTT_HASSIO
-#define INFORMATION_LIGHT_STATE
-#define INFORMATION_PIR_SENSOR
+//#define INFORMATION_WIFI_STATE
+//#define INFORMATION_MQTT_STATE
+//#define INFORMATION_HASSIO_STATE
+//#define INFORMATION_MQTT_LED
+//#define INFORMATION_MQTT_MOTION_DETECTION
+//#define INFORMATION_MQTT_HASSIO
+//#define INFORMATION_LIGHT_STATE
+//#define INFORMATION_PIR_SENSOR
 
 //-------------------- Basic Information --------------------//
 #define Name        "LED-Strip-Controller-for-12V-Mk-4"
 #define Programmer  "Nico Weidenfeller"
 #define Created     "16.12.2019"
-#define LastModifed "07.01.2020"
-#define Version     "0.1.3"
+#define LastModifed "27.01.2020"
+#define Version     "0.1.4"
 /*
    Information    :  General Rework of Code from the Mk3 Software. PIR motion detection is now Interupt based.
                      Fixed WakeUp and Sleep routines. Added Alarm, noWiFi, noHassIO and noMqtt Effect. Removed Remote ESP restart Option.
@@ -84,6 +87,8 @@
                          Added Effects Alarm, Sleep, Wakeup and Weekend(not synced). Updatet ToDo list and added finished list. Added basic master present.
                      - Version 0.1.3
                          Fixed some bugs. Added motion detection effect. Added Only_RGB/CW/WW/RGBCW/RGBWW Effect/Mode. Fixed perma resend bug when HassIo is not aviable.
+                     - Version 0.1.4
+                         Added Option to disable Prio 3 LED Effects
 
 
 */
@@ -217,6 +222,9 @@ struct MotionDetectionParameter {
 //*************************************************************************************************//
 //----------------------------------------------- LED ---------------------------------------------//
 //*************************************************************************************************//
+
+boolean DisablePrio3Effect = true;
+
 const int MAX_COLOR_VALUE       = 255;
 const int MIN_COLOR_VALUE       = 0;
 const int MAX_BRIGHTNESS_VALUE  = 255;

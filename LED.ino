@@ -136,7 +136,7 @@ void StripControl(HardwareStripConfig   *HardwareStrip,
       TransData->CurMode == Weekend
     ) {
 
-      if (Strip->Power or Strip->Effect == e_Wakeup) {
+      if (Strip->Power or Strip->Effect == e_Wakeup or Strip->Effect == e_Alarm) {
         switch (Strip->Effect) {
 
           //-- None / Normal mode
@@ -521,7 +521,7 @@ void StripControl(HardwareStripConfig   *HardwareStrip,
       TransData->CurMode == NoWiFi
     ) {
 
-      if (!NetworkState.HassIO_Connected) {
+      if (!NetworkState.HassIO_Connected and !DisablePrio3Effect) {
 
         //-- Check if CurMode is Idle or unequal NoHassIO if so reset
         if (TransData->CurMode == Idle or TransData->CurMode != NoHassIO) {
@@ -608,7 +608,7 @@ void StripControl(HardwareStripConfig   *HardwareStrip,
       }
 
       //-- NoMQTT
-      if (!NetworkState.MQTT_Connected) {
+      if (!NetworkState.MQTT_Connected and !DisablePrio3Effect) {
 
         //-- Check if CurMode is Idle or unequal NoMQTT if so reset
         if (TransData->CurMode == Idle or TransData->CurMode != NoMQTT) {
@@ -695,7 +695,7 @@ void StripControl(HardwareStripConfig   *HardwareStrip,
       }
 
       //-- NoWiFi
-      if (!NetworkState.Wifi_Connected) {
+      if (!NetworkState.Wifi_Connected and !DisablePrio3Effect) {
 
         //-- Check if CurMode is Idle or unequal NoWiFi if so reset
         if (TransData->CurMode == Idle or TransData->CurMode != NoWiFi) {
